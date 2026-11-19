@@ -4,8 +4,8 @@ A Claude Code plugin that cleans up Zenmoney data through the Zenmoney connector
 
 ## Install
 
-1. Connect the Zenmoney connector in Claude Code.
-2. Run `/plugin marketplace add <path or URL of this repository>` and `/plugin install zenmoney-cleaner`, then start a new session.
+1. Add the Zenmoney connector, which the plugin `zenmoney` of Zenmoney brings: run `/plugin install zenmoney --marketplace zenmoney/skills`, or find Zenmoney under **Discover** in `/plugin`, then connect it on the plugin's **Connectors** tab and sign in to your Zenmoney account. It needs a Zenmoney account with an active subscription.
+2. Run `/plugin marketplace add clutcher/zenmoney-cleaner` and `/plugin install zenmoney-cleaner@zenmoney-cleaner`, then start a new session.
 3. Python 3.10 or newer with PyYAML must be on the path (`pip install PyYAML`).
 
 ## Use
