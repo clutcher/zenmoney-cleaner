@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 from zenmoney_cleaner.settings.settings import Confidence
@@ -28,6 +29,7 @@ class Approval:
     upsert_batches: tuple[tuple[dict[str, Any], ...], ...]
     delete_batches: tuple[tuple[str, ...], ...]
     confirmations: tuple[Confirmation, ...]
+    checked_until: date | None = None
 
 
 def approve_proposal(
@@ -74,7 +76,18 @@ def approve_proposal(
     if raw_proposal.get("mode") == _NEW_MODE:
         upserts += [{"id": confirmation.transaction_id, "isReviewed": True} for confirmation in unchanged_confirmations]
     delete_ids = [change["deleteId"] for change in approved_changes if change.get("deleteId")]
-    return Approval(upsert_batches=_split(upserts), delete_batches=_split(delete_ids), confirmations=tuple(confirmations))
+    decided_ids = {change["transaction"]["id"] for change in approved_changes} | {
+        confirmation.transaction_id for confirmation in confirmations
+    }
+    return Approval(_split(upserts), _split(delete_ids), tuple(confirmations), _find_checked_until(raw_proposal, open_items, decided_ids))
+
+
+def _find_checked_until(raw_proposal: dict[str, Any], open_items: list[dict[str, Any]], decided_ids: set[str]) -> date | None:
+    if not raw_proposal.get("checkedUntil"):
+        return None
+
+    left_open_days = [date.fromisoformat(item["transaction"]["date"]) for item in open_items if item["transaction"]["id"] not in decided_ids]
+    return min(left_open_days, default=date.fromisoformat(raw_proposal["checkedUntil"]))
 
 
 def _read_changes(raw_proposal: dict[str, Any]) -> list[dict[str, Any]]:

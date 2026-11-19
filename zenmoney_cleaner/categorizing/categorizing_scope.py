@@ -9,6 +9,7 @@ class CategorizingMode(Enum):
     WITHOUT_CATEGORY = "without-category"
     NEW_IN_ZENMONEY = "new-in-zenmoney"
     RECHECK_ALL = "recheck-all"
+    SINCE_LAST_CHECK = "since-last-check"
 
     def takes(self, transaction: Transaction) -> bool:
         if self == CategorizingMode.WITHOUT_CATEGORY:

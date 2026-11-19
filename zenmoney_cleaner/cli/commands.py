@@ -66,8 +66,13 @@ class MissingFetchRangeError(Exception):
     pass
 
 
+class MissingLastCheckError(Exception):
+    pass
+
+
 _USER_ERRORS = (
     MissingFetchRangeError,
+    MissingLastCheckError,
     SettingsError,
     UnknownCategoryError,
     TransferTargetError,
@@ -162,7 +167,7 @@ def fetch_range(arguments: argparse.Namespace) -> None:
 
 
 def prepare(arguments: argparse.Namespace) -> None:
-    write_scope(_read_scope_arguments(arguments), Path(arguments.out))
+    write_scope(_read_scope_arguments(arguments, arguments.home_path), Path(arguments.out))
     run = _open_run(arguments)
 
     tasks = split_into_tasks(run.selection.merchant_groups)
@@ -261,14 +266,27 @@ def _read_snapshot(path: Path, settings: Settings) -> Snapshot:
     return snapshot.with_balance_adjustment_category(adjustment_category.id)
 
 
-def _read_scope_arguments(arguments: argparse.Namespace) -> CategorizingScope:
+def _read_scope_arguments(arguments: argparse.Namespace, home: Path) -> CategorizingScope:
+    mode = CategorizingMode(arguments.mode)
+    from_date = _read_period_start(arguments.from_period) if arguments.from_period else None
+    if mode == CategorizingMode.SINCE_LAST_CHECK:
+        from_date = _read_last_check(home)
+
     return CategorizingScope(
-        mode=CategorizingMode(arguments.mode),
-        from_date=_read_period_start(arguments.from_period) if arguments.from_period else None,
+        mode=mode,
+        from_date=from_date,
         to_date=_read_period_end(arguments.to_period) if arguments.to_period else None,
         account_names=frozenset(arguments.account),
         kind=TransactionKind(arguments.type) if arguments.type else None,
     )
+
+
+def _read_last_check(home: Path) -> date:
+    last_check = read_history(home / _HISTORY_FILE_NAME).last_check
+    if last_check is None:
+        raise MissingLastCheckError("history.json records no check yet; approve a run of another mode first")
+
+    return last_check
 
 
 def _read_period_start(period: str) -> date:
@@ -348,6 +366,9 @@ def approve(arguments: argparse.Namespace) -> None:
     }
     Path(arguments.out).write_text(json.dumps(raw_batches, ensure_ascii=False, indent=1), encoding="utf-8")
     record_confirmations(home / "verified.yml", approval.confirmations, date.today())
+    if approval.checked_until is not None:
+        history_path = home / _HISTORY_FILE_NAME
+        write_history(read_history(history_path).record_check(approval.checked_until), history_path)
     upsert_count = sum(len(batch) for batch in approval.upsert_batches)
     delete_count = sum(len(batch) for batch in approval.delete_batches)
     print(
@@ -433,7 +454,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     prepare_parser = subparsers.add_parser("prepare", help="save the scope, decide by rules and write the categorize jobs for the rest")
     prepare_parser.add_argument("--mode", choices=[mode.value for mode in CategorizingMode], required=True,
-                                help="without-category: only transactions with no category; new-in-zenmoney: only those Zenmoney shows as New; recheck-all: every transaction of the scope")
+                                help="without-category: only transactions with no category; new-in-zenmoney: only those Zenmoney shows as New; recheck-all: every transaction of the scope; since-last-check: every transaction from the day of the last approved check, that day included")
     prepare_parser.add_argument("--from", dest="from_period", help="first day as YYYY-MM-DD, or a month as YYYY-MM for its first day")
     prepare_parser.add_argument("--to", dest="to_period", help="last day as YYYY-MM-DD, or a month as YYYY-MM for its last day")
     prepare_parser.add_argument("--account", action="append", default=[], help="account name; repeatable")

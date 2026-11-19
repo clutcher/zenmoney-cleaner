@@ -15,6 +15,7 @@ Ask Claude in your own words:
 - "Fetch my Zenmoney transactions for the last 3 months."
 - "Categorize everything that has no category."
 - "Check my new transactions" — the ones Zenmoney shows as New.
+- "Check what came in since the last time." — from the day of your last approved check, such as each week.
 - "Recheck the spendings of the account Card from August to October."
 - "Clean up the balance corrections."
 

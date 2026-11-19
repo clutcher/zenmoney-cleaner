@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import date
 from enum import Enum
 
 from zenmoney_cleaner.categorizing.categorizing_scope import CategorizingScope
@@ -29,6 +30,7 @@ class RuleJudgement:
 class CategorySelection:
     rule_judgements: tuple[RuleJudgement, ...]
     merchant_groups: tuple[MerchantGroup, ...]
+    checked_until: date | None = None
 
     def list_agent_transaction_ids(self) -> set[str]:
         return {transaction.id for group in self.merchant_groups for transaction in group.transactions}
@@ -92,6 +94,7 @@ class CategoryProposal:
     changes: tuple[ProposedChange, ...]
     agreements: tuple[Agreement, ...]
     unknown_merchants: tuple[UnknownMerchant, ...]
+    checked_until: date | None = None
 
 
 def select_for_categorizing(
@@ -111,7 +114,8 @@ def select_for_categorizing(
         else:
             rule_judgements.append(RuleJudgement(transaction, merchant_key, change))
 
-    return CategorySelection(tuple(rule_judgements), group_by_merchant(agent_transactions, snapshot, key_maker))
+    covered_days = [transaction.date for transaction in snapshot.transactions if transaction.is_categorizable() and scope.covers(transaction)]
+    return CategorySelection(tuple(rule_judgements), group_by_merchant(agent_transactions, snapshot, key_maker), max(covered_days, default=None))
 
 
 def select_merchants_to_research(
@@ -173,7 +177,7 @@ def propose_categories(
     unknown_merchants = tuple(
         UnknownMerchant(merchant_key, tuple(undecided_transactions)) for merchant_key, undecided_transactions in undecided_by_merchant_key_map.items()
     )
-    return CategoryProposal(scope, tuple(changes), tuple(agreements), unknown_merchants)
+    return CategoryProposal(scope, tuple(changes), tuple(agreements), unknown_merchants, selection.checked_until)
 
 
 def _select_transactions(snapshot: Snapshot, verified_transactions: VerifiedTransactions, scope: CategorizingScope) -> list[Transaction]:

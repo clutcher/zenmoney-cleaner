@@ -39,7 +39,7 @@ Rules in words, written as you would explain them to a person, and a section *Pl
 
 ## history.json
 
-The id, date, kind, account, bank text, amount and category of each transaction of the last 13 months, so a later run fetches only the new days and still shows the categorizer what you chose before and which payments repeat each month. Each fetch replaces the days it covered, so a transaction deleted or changed in Zenmoney is gone or changed here too. History only gives hints: no run proposes a change of a transaction that the fresh fetch does not hold. Delete the file to start over with a fetch of 3 months.
+The id, date, kind, account, bank text, amount and category of each transaction of the last 13 months, so a later run fetches only the new days and still shows the categorizer what you chose before and which payments repeat each month. Each fetch replaces the days it covered, so a transaction deleted or changed in Zenmoney is gone or changed here too. History only gives hints: no run proposes a change of a transaction that the fresh fetch does not hold. `lastCheck` is the newest day of the last categorize run you approved, or the day of the oldest row you left open in it, so a skipped or undecided row comes back next time; the mode `since-last-check` starts there, that day included, and skips the transactions already confirmed. Delete the file to start over with a fetch of 3 months.
 
 ## places.yml
 

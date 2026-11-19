@@ -18,6 +18,7 @@ Turn the request into a scope:
 |---|---|---|
 | categorize what has no category | `without-category` | usually none |
 | check the new transactions | `new-in-zenmoney`, the transactions Zenmoney shows as New | usually none |
+| check what came since the last time, such as each week | `since-last-check`, every transaction from the day of the last approved check, that day included; the confirmed ones are skipped | usually none |
 | recheck a period, an account, spendings | `recheck-all`, with or without a category | `--from`, `--to`, `--account`, `--type` |
 
 `--from` and `--to` take a day as `YYYY-MM-DD` or a month as `YYYY-MM`, which means its first or its last day, so "August to October" is `--from 2026-08 --to 2026-10`, and "the last 3 months" runs from the same day 3 months ago to today. `--account` takes an account name as Zenmoney shows it and repeats for several; `--type expense` means spendings, `--type income` incomes. Every mode takes these options too. Say the scope back to the user in 1 line before you go on.

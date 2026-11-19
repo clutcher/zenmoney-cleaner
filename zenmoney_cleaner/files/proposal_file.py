@@ -36,6 +36,7 @@ def write_category_proposal(proposal: CategoryProposal, catalog: CategoryCatalog
 
     raw_proposal = {
         "mode": proposal.scope.mode.value,
+        "checkedUntil": proposal.checked_until.isoformat() if proposal.checked_until else None,
         "changes": raw_changes,
         "agreements": raw_agreements,
         "undecided": raw_undecided,
