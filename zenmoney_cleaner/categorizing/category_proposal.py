@@ -67,10 +67,23 @@ class Agreement:
 
 
 @dataclass(frozen=True)
+class UndecidedTransaction:
+    transaction: Transaction
+    judgement: Undecided
+
+
+@dataclass(frozen=True)
 class UnknownMerchant:
     merchant_key: str | None
-    transactions: tuple[Transaction, ...]
-    reasons: tuple[str, ...]
+    undecided_transactions: tuple[UndecidedTransaction, ...]
+
+    @property
+    def transactions(self) -> tuple[Transaction, ...]:
+        return tuple(undecided.transaction for undecided in self.undecided_transactions)
+
+    @property
+    def reasons(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(undecided.judgement.reason for undecided in self.undecided_transactions))
 
 
 @dataclass(frozen=True)
@@ -138,31 +151,27 @@ def propose_categories(
     scope: CategorizingScope,
 ) -> CategoryProposal:
     judged_transactions = [(judgement.transaction, judgement.merchant_key, judgement.change) for judgement in selection.rule_judgements] + [
-        (transaction, group.merchant_key, _apply_ruling(judgements_by_transaction_id_map[transaction.id], rulings_by_transaction_id_map.get(transaction.id)))
+        (transaction, group.merchant_key, _apply_ruling(transaction, judgements_by_transaction_id_map[transaction.id], rulings_by_transaction_id_map.get(transaction.id)))
         for group in selection.merchant_groups
         for transaction in group.transactions
     ]
 
     changes: list[ProposedChange] = []
     agreements: list[Agreement] = []
-    undecided_by_merchant_key_map: dict[str | None, list[tuple[Transaction, str]]] = defaultdict(list)
+    undecided_by_merchant_key_map: dict[str | None, list[UndecidedTransaction]] = defaultdict(list)
     for transaction, merchant_key, judgement in judged_transactions:
         if isinstance(judgement, Undecided):
-            undecided_by_merchant_key_map[merchant_key].append((transaction, judgement.reason))
+            undecided_by_merchant_key_map[merchant_key].append(UndecidedTransaction(transaction, judgement))
         elif isinstance(judgement, Recategorize) and judgement.confidence == Confidence.LOW and transaction.has_category():
-            undecided_by_merchant_key_map[merchant_key].append((transaction, f"guess only: {judgement.reason}"))
+            guess = Undecided(f"guess only: {judgement.reason}", judgement.category.full_name)
+            undecided_by_merchant_key_map[merchant_key].append(UndecidedTransaction(transaction, guess))
         elif isinstance(judgement, Recategorize) and judgement.category.id == transaction.category_id:
             agreements.append(Agreement(transaction, merchant_key, judgement))
         else:
             changes.append(ProposedChange(transaction, merchant_key, judgement))
 
     unknown_merchants = tuple(
-        UnknownMerchant(
-            merchant_key,
-            tuple(transaction for transaction, _ in undecided),
-            tuple(dict.fromkeys(reason for _, reason in undecided)),
-        )
-        for merchant_key, undecided in undecided_by_merchant_key_map.items()
+        UnknownMerchant(merchant_key, tuple(undecided_transactions)) for merchant_key, undecided_transactions in undecided_by_merchant_key_map.items()
     )
     return CategoryProposal(scope, tuple(changes), tuple(agreements), unknown_merchants)
 
@@ -192,8 +201,9 @@ def _overrides_user_category(transaction: Transaction, judgement: Judgement) -> 
     return judgement.category.id != transaction.category_id and judgement.confidence != Confidence.LOW
 
 
-def _apply_ruling(judgement: Judgement, ruling: VerifierRuling | None) -> Judgement:
+def _apply_ruling(transaction: Transaction, judgement: Judgement, ruling: VerifierRuling | None) -> Judgement:
     if ruling is None or ruling.verdict == Verdict.KEEP:
         return judgement
 
-    return Undecided(f"the verifier rejected {judgement.category.full_name if isinstance(judgement, Recategorize) else 'the change'}: {ruling.reason}")
+    rejected_text = judgement.category.full_name if isinstance(judgement, Recategorize) else "the change"
+    return Undecided(f"the verifier rejected {rejected_text}: {ruling.reason}", transaction.category_name)

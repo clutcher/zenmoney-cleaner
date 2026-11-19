@@ -28,6 +28,7 @@ class ConvertToTransfer:
 @dataclass(frozen=True)
 class Undecided:
     reason: str
+    likely_category_name: str | None = None
 
 
 Change = Recategorize | Delete | ConvertToTransfer

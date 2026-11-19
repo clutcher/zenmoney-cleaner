@@ -18,6 +18,7 @@ class AgentAnswer:
     confidence: str
     reason: str
     searchable: bool = True
+    likely_category_key: str | None = None
 
 
 def judge_by_answers(
@@ -48,6 +49,8 @@ def _check_answers(answers: list[AgentAnswer], expected_transaction_ids: set[str
     for answer in answers:
         if answer.category_key is not None and not catalog.holds(answer.category_key):
             problems.append(f"{answer.transaction_id}: category {answer.category_key!r} is not a key of the task")
+        if answer.likely_category_key is not None and not catalog.holds(answer.likely_category_key):
+            problems.append(f"{answer.transaction_id}: likely {answer.likely_category_key!r} is not a key of the task")
         if answer.confidence not in {confidence.value for confidence in Confidence}:
             problems.append(f"{answer.transaction_id}: confidence {answer.confidence!r} is none of high, medium, low")
 
@@ -57,6 +60,7 @@ def _check_answers(answers: list[AgentAnswer], expected_transaction_ids: set[str
 
 def _judge(answer: AgentAnswer, catalog: CategoryCatalog) -> Judgement:
     if answer.category_key is None:
-        return Undecided(answer.reason)
+        likely_category_name = catalog.get_category(answer.likely_category_key).full_name if answer.likely_category_key else None
+        return Undecided(answer.reason, likely_category_name)
 
     return Recategorize(catalog.get_category(answer.category_key), Confidence(answer.confidence), answer.reason, _AGENT_SOURCE)

@@ -100,6 +100,7 @@ def read_category_answers(directory: Path, stage: str) -> list[AgentAnswer]:
             confidence=str(raw_answer.get("confidence", "")),
             reason=str(raw_answer.get("reason", "")),
             searchable=raw_answer.get("searchable") is not False,
+            likely_category_key=raw_answer.get("likely"),
         )
         for path, raw_answer in _read_answers(directory, stage)
     ]
@@ -297,6 +298,8 @@ def _check_category_answer(raw_task: dict[str, Any], answer_path: Path) -> tuple
             continue
         if raw_answer.get("category") is not None and raw_answer.get("category") not in raw_task["categories"]:
             problems.append(f"{raw_answer.get('id')}: category {raw_answer.get('category')!r} is not a key of categories")
+        if raw_answer.get("likely") is not None and raw_answer.get("likely") not in raw_task["categories"]:
+            problems.append(f"{raw_answer.get('id')}: likely {raw_answer.get('likely')!r} is not a key of categories")
         if raw_answer.get("confidence") not in {confidence.value for confidence in Confidence}:
             problems.append(f"{raw_answer.get('id')}: confidence {raw_answer.get('confidence')!r} is none of high, medium, low")
     return tuple(problems)

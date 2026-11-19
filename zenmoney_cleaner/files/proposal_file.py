@@ -21,9 +21,13 @@ def write_category_proposal(proposal: CategoryProposal, catalog: CategoryCatalog
     raw_changes = [_write_change(proposed_change) for proposed_change in proposal.changes]
     raw_agreements = [_write_agreement(agreement) for agreement in proposal.agreements]
     raw_undecided = [
-        {"merchantKey": merchant.merchant_key, "transaction": write_transaction_line(transaction)}
+        {
+            "merchantKey": merchant.merchant_key,
+            "transaction": write_transaction_line(undecided.transaction),
+            "likelyCategory": undecided.judgement.likely_category_name,
+        }
         for merchant in proposal.unknown_merchants
-        for transaction in merchant.transactions
+        for undecided in merchant.undecided_transactions
     ]
     raw_unknown_merchants = [_write_unknown_merchant(merchant) for merchant in proposal.unknown_merchants]
     raw_unknown_merchants.sort(key=lambda merchant: -merchant["transactionCount"])
@@ -144,13 +148,14 @@ def _render_markdown(
 
     lines += ["## Undecided", "", _ROW_HEADER, _ROW_RULE]
     undecided_rows = [
-        (merchant, transactions)
+        (merchant, items)
         for merchant in raw_unknown_merchants
-        for transactions in _split_by_currency([item["transaction"] for item in raw_undecided if item["merchantKey"] == merchant["merchantKey"]])
+        for items in _split_by_currency([item for item in raw_undecided if item["merchantKey"] == merchant["merchantKey"]])
     ]
-    for number, (merchant, transactions) in enumerate(undecided_rows, start=len(change_groups) + 1):
-        current_categories_text = ", ".join(merchant["currentCategories"])
-        lines.append(_render_row(number, merchant["merchantKey"], transactions, f"{current_categories_text} → ?", "; ".join(merchant["reasons"])))
+    for number, (merchant, items) in enumerate(undecided_rows, start=len(change_groups) + 1):
+        transactions = [item["transaction"] for item in items]
+        target_text = f"{', '.join(merchant['currentCategories'])} → {_describe_likely_categories(items)}"
+        lines.append(_render_row(number, merchant["merchantKey"], transactions, target_text, "; ".join(merchant["reasons"])))
     lines.append("")
 
     lines += ["## Confirmed", "", "| Merchant | Category | Transactions | Evidence |", "|---|---|---|---|"]
@@ -184,11 +189,19 @@ def _group_changes(raw_changes: list[dict[str, Any]]) -> list[tuple[str | None, 
     return [(merchant_key, changes) for (merchant_key, _, _), changes in groups]
 
 
-def _split_by_currency(transactions: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
-    transactions_by_currency_map: dict[str, list[dict[str, Any]]] = {}
-    for transaction in transactions:
-        transactions_by_currency_map.setdefault(transaction["currency"], []).append(transaction)
-    return list(transactions_by_currency_map.values())
+def _split_by_currency(raw_undecided: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    items_by_currency_map: dict[str, list[dict[str, Any]]] = {}
+    for item in raw_undecided:
+        items_by_currency_map.setdefault(item["transaction"]["currency"], []).append(item)
+    return list(items_by_currency_map.values())
+
+
+def _describe_likely_categories(raw_undecided: list[dict[str, Any]]) -> str:
+    likely_category_names = list(dict.fromkeys(item["likelyCategory"] for item in raw_undecided if item["likelyCategory"]))
+    if not likely_category_names:
+        return "?"
+
+    return f"{', '.join(likely_category_names)}?"
 
 
 def _group_agreements(raw_agreements: list[dict[str, Any]]) -> list[tuple[str | None, list[dict[str, Any]]]]:

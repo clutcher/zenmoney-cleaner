@@ -411,3 +411,40 @@ def test_should_show_1_row_per_currency_when_an_undecided_merchant_is_paid_in_2_
     proposal_lines = (run.out / "proposal.md").read_text(encoding="utf-8").splitlines()
     assert "| 1 | 2025-11-02 | TOMAS BREK | Main Card | -6 EUR |  | Groceries → ? | a person |" in proposal_lines
     assert "| 2 | 2025-11-03 | TOMAS BREK | USD | -7 USD |  | Groceries → ? | a person |" in proposal_lines
+
+
+def test_should_show_the_likely_category_of_an_undecided_merchant_when_the_agent_names_a_best_guess(tmp_path: Path) -> None:
+    # given
+    unknown_shop = build_expense("t-1", "2025-11-18", 61.2, "MAPLE THREAD BOUTIQUE", GROCERIES_ID)
+    run = start_run(tmp_path, [unknown_shop], "recheck-all")
+    run.run("prepare")
+    guess_answer = {"category": None, "confidence": "low", "reason": "an unknown shop", "likely": "clothing", "searchable": False}
+    run.answer_every_task("categorize", {"t-1": guess_answer})
+    run.run("route")
+    run.run("verify")
+
+    # when
+    run.run("propose")
+
+    # then
+    proposal_lines = (run.out / "proposal.md").read_text(encoding="utf-8").splitlines()
+    assert "| 1 | 2025-11-18 | MAPLE THREAD BOUTIQUE | Main Card | -61.2 EUR |  | Groceries → Clothing? | an unknown shop |" in proposal_lines
+    assert run.read_proposal()["undecided"][0]["likelyCategory"] == "Clothing"
+
+
+def test_should_show_the_current_category_as_likely_when_the_verifier_rejects_the_change(tmp_path: Path) -> None:
+    # given
+    clothes_at_hypermarket = build_expense("t-1", "2025-11-10", 42, "HYPERMART EAST", CLOTHING_ID)
+    run = start_run(tmp_path, [clothes_at_hypermarket], "recheck-all")
+    run.run("prepare")
+    run.answer_every_task("categorize", {"t-1": {"category": "groceries", "confidence": "high", "reason": "a supermarket"}})
+    run.run("route")
+    run.run("verify")
+    run.write_answer("verify", "merchant-001.json", [{"id": "t-1", "decision": "reject", "reason": "a hypermarket also sells clothes"}])
+
+    # when
+    run.run("propose")
+
+    # then
+    proposal_text = (run.out / "proposal.md").read_text(encoding="utf-8")
+    assert "| Clothing → Clothing? |" in proposal_text

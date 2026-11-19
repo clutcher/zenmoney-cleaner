@@ -33,7 +33,7 @@ Confidence:
 - `medium`: the place allows several categories, and the amount and context point to 1.
 - `low`: a guess.
 
-Where you cannot tell what the place is at all, answer `category: null` with `confidence: low`, and say in the reason what is unknown, such as "an unknown shop named X".
+Where you cannot tell what the place is at all, answer `category: null` with `confidence: low`, and say in the reason what is unknown, such as "an unknown shop named X". Where you still have a best guess, add it as `"likely": "<category key>"`, so the user sees it as a suggestion; leave the key out where you have none.
 
 Where the bank text holds no business name that a web search could find, such as only a private person's name or only a date and a reference code, add `"searchable": false` to the answer: a researcher would find nothing, so the user decides it. Leave the key out in every other case.
 
@@ -45,4 +45,4 @@ Write the answer file with the Write tool: a JSON list with exactly 1 object per
 [{"id": "<transaction id>", "category": "<category key or null>", "confidence": "high|medium|low", "reason": "<1 short sentence>"}]
 ```
 
-Add `"searchable": false` only as the section above says. Use only the keys of `categories`, spelled exactly as they stand there, and answer every transaction of every merchant of the task. Then return `status: written` with `count`, the number of answers. Where you cannot write the file, return `status: failed` with the problem.
+Add `"searchable": false` and `"likely"` only as the section above says. Use only the keys of `categories`, spelled exactly as they stand there, and answer every transaction of every merchant of the task. Then return `status: written` with `count`, the number of answers. Where you cannot write the file, return `status: failed` with the problem.
