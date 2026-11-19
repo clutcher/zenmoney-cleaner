@@ -96,8 +96,8 @@ def test_should_fetch_from_the_newest_history_day_minus_the_overlap_when_the_his
     # given
     home = write_home(tmp_path, CONFIG_TEXT + "history: {overlap_days: 10}\n")
     newest_day = date.today() - timedelta(days=3)
-    raw_entry = {"id": "t-1", "date": newest_day.isoformat(), "kind": "expense", "accountId": CARD_ID, "payee": "CAFE ORBIT", "amount": 4, "categoryId": None}
-    (home / "history.json").write_text(json.dumps({"lastCheck": None, "transactions": [raw_entry]}), encoding="utf-8")
+    raw_entry = {"id": "t-1", "date": newest_day.isoformat(), "kind": "expense", "account_id": CARD_ID, "payee": "CAFE ORBIT", "amount": 4, "category_id": None}
+    (home / "history.json").write_text(json.dumps({"last_check": None, "transactions": [raw_entry]}), encoding="utf-8")
 
     # when
     main(["fetch-range", "--home", str(home)])

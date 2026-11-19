@@ -26,14 +26,14 @@ def test_should_record_the_newest_checked_day_when_the_user_approves_a_run(tmp_p
     main(["approve", "--proposal", str(run.out / "proposal.json"), "--out", str(tmp_path / "batches.json"), "--home", str(run.home)])
 
     # then
-    assert read_json(run.home / "history.json")["lastCheck"] == "2025-11-10"
+    assert read_json(run.home / "history.json")["last_check"] == "2025-11-10"
 
 
 def test_should_take_the_transactions_from_the_day_of_the_last_check_when_the_mode_is_since_last_check(tmp_path: Path) -> None:
     # given
     coffees = [build_expense(f"t-{day}", f"2025-11-{day:02}", 2.8, "CAFETERIA LUMEN", CAFE_ID) for day in (9, 10, 12)]
     run = start_run(tmp_path, coffees, "since-last-check")
-    (run.home / "history.json").write_text(json.dumps({"lastCheck": "2025-11-10", "transactions": []}), encoding="utf-8")
+    (run.home / "history.json").write_text(json.dumps({"last_check": "2025-11-10", "transactions": []}), encoding="utf-8")
 
     # when
     run.run("prepare")
@@ -58,7 +58,7 @@ def test_should_record_the_day_of_the_oldest_row_left_open_when_the_user_skips_a
     # given
     transactions = [build_expense("t-1", "2025-11-03", 61.2, "MAPLE THREAD BOUTIQUE"), build_expense("t-2", "2025-11-10", 2.8, "CAFETERIA LUMEN")]
     run = start_run(tmp_path, transactions, "since-last-check")
-    (run.home / "history.json").write_text(json.dumps({"lastCheck": "2025-11-01", "transactions": []}), encoding="utf-8")
+    (run.home / "history.json").write_text(json.dumps({"last_check": "2025-11-01", "transactions": []}), encoding="utf-8")
     run.run("prepare")
     unknown_answer = {"category": None, "confidence": "low", "reason": "an unknown shop", "searchable": False}
     run.answer_every_task("categorize", {"t-1": unknown_answer, "t-2": _SURE_CAFE})
@@ -70,4 +70,4 @@ def test_should_record_the_day_of_the_oldest_row_left_open_when_the_user_skips_a
     main(["approve", "--proposal", str(run.out / "proposal.json"), "--out", str(tmp_path / "batches.json"), "--home", str(run.home)])
 
     # then
-    assert read_json(run.home / "history.json")["lastCheck"] == "2025-11-03"
+    assert read_json(run.home / "history.json")["last_check"] == "2025-11-03"
