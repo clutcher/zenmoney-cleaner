@@ -22,6 +22,7 @@ from zenmoney_cleaner.categorizing.category_tasks import MerchantGroup, split_in
 from zenmoney_cleaner.categorizing.rule_categorizer import RuleCategorizer, TransferTargetError
 from zenmoney_cleaner.corrections.correction_chains import MissingAdjustmentCategoryError, find_correction_chains
 from zenmoney_cleaner.files.corrections_file import write_corrections_proposal
+from zenmoney_cleaner.files.history_file import read_history, write_history
 from zenmoney_cleaner.files.first_settings_file import HomeAlreadySetUpError, write_first_settings
 from zenmoney_cleaner.files.proposal_file import write_category_proposal
 from zenmoney_cleaner.categorizing.known_places import KnownPlaces
@@ -58,7 +59,14 @@ from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, Unkn
 _RERUN_EXIT_CODE = 2
 _PLACES_FILE_NAME = "places.yml"
 _EXAMPLE_FOLDER = Path(__file__).resolve().parents[2] / "config.example"
+
+
+class MissingFetchRangeError(Exception):
+    pass
+
+
 _USER_ERRORS = (
+    MissingFetchRangeError,
     SettingsError,
     UnknownCategoryError,
     TransferTargetError,
@@ -124,10 +132,20 @@ def merge(arguments: argparse.Namespace) -> None:
     accounts_response = json.loads(Path(arguments.accounts).read_text(encoding="utf-8"))
 
     snapshot = merge_snapshot(pages_by_query, categories_response, accounts_response)
+    if arguments.history:
+        if not (arguments.fetched_from and arguments.fetched_to):
+            raise MissingFetchRangeError("--history needs --fetched-from and --fetched-to, the range of the main query")
+        snapshot = _keep_history(snapshot, Path(arguments.history), date.fromisoformat(arguments.fetched_from), date.fromisoformat(arguments.fetched_to))
 
     write_snapshot(snapshot, Path(arguments.out))
     page_count = sum(len(query_pages) for query_pages in pages_by_query)
     print(f"snapshot: {len(snapshot.transactions)} transactions from {page_count} pages → {arguments.out}")
+
+
+def _keep_history(snapshot: Snapshot, history_path: Path, fetched_from: date, fetched_to: date) -> Snapshot:
+    history = read_history(history_path).replace_range(snapshot.transactions, fetched_from, fetched_to)
+    write_history(history, history_path)
+    return snapshot.with_history_transactions(history.list_transactions(snapshot))
 
 
 def prepare(arguments: argparse.Namespace) -> None:
@@ -391,6 +409,9 @@ def _build_parser() -> argparse.ArgumentParser:
     merge_parser.add_argument("--categories", required=True, help="saved list_categories response")
     merge_parser.add_argument("--accounts", required=True, help="saved list_accounts response")
     merge_parser.add_argument("--out", required=True, help="snapshot file to write")
+    merge_parser.add_argument("--history", help="history.json of the home folder: the fetched range replaces that range in it, and the rest joins the snapshot as history")
+    merge_parser.add_argument("--fetched-from", help="first day of the main query as YYYY-MM-DD; needed with --history")
+    merge_parser.add_argument("--fetched-to", help="last day of the main query as YYYY-MM-DD; needed with --history")
     merge_parser.set_defaults(command=merge, needs_home=False)
 
     prepare_parser = subparsers.add_parser("prepare", help="save the scope, decide by rules and write the categorize jobs for the rest")

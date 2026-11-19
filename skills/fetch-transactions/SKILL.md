@@ -19,10 +19,10 @@ The other skills never call Zenmoney for data themselves; they read the snapshot
 6. Run the merge, with a second `--pages <run>/correction-pages` where step 5 ran:
 
    ```
-   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner merge --pages <run>/pages --categories <run>/categories.json --accounts <run>/accounts.json --out <run>/snapshot.json
+   PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner merge --pages <run>/pages --categories <run>/categories.json --accounts <run>/accounts.json --out <run>/snapshot.json --history <home>/history.json --fetched-from <from of step 3> --fetched-to <to of step 3>
    ```
 
-   Each `--pages` folder holds the pages of 1 query, and a transaction that 2 queries return is kept once. The merge stops with an error when no page of a folder ends its cursor chain; then a page is missing, so fetch that query again.
+   Each `--pages` folder holds the pages of 1 query, and a transaction that 2 queries return is kept once. The fetched range replaces that range in `history.json`, and its earlier months join the snapshot as history, which the categorizer sees as the user's habits but which no run changes. The merge stops with an error when no page of a folder ends its cursor chain; then a page is missing, so fetch that query again.
 7. Tell the user the run folder and the count of transactions.
 
 Fetch again after the user changes data in Zenmoney, because a proposal built on an old snapshot proposes changes that are already done.

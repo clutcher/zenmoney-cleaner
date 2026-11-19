@@ -41,7 +41,7 @@ def group_by_merchant(transactions: list[Transaction], snapshot: Snapshot, key_m
         transactions_by_merchant_key_map[key_maker.make_key(transaction.payee)].append(transaction)
 
     snapshot_transactions_by_merchant_key_map: dict[str | None, list[Transaction]] = defaultdict(list)
-    for transaction in snapshot.transactions:
+    for transaction in snapshot.list_hint_transactions():
         if transaction.is_categorizable():
             snapshot_transactions_by_merchant_key_map[key_maker.make_key(transaction.payee)].append(transaction)
 

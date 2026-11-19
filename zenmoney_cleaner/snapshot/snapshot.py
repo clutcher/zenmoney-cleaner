@@ -31,6 +31,7 @@ class Snapshot:
     categories: tuple[Category, ...]
     accounts: tuple[Account, ...]
     balance_adjustment_category_id: str | None
+    history_transactions: tuple[Transaction, ...] = ()
 
     def with_balance_adjustment_category(self, category_id: str | None) -> "Snapshot":
         transactions = tuple(
@@ -38,6 +39,12 @@ class Snapshot:
             for transaction in self.transactions
         )
         return replace(self, transactions=transactions, balance_adjustment_category_id=category_id)
+
+    def with_history_transactions(self, history_transactions: tuple[Transaction, ...]) -> "Snapshot":
+        return replace(self, history_transactions=history_transactions)
+
+    def list_hint_transactions(self) -> tuple[Transaction, ...]:
+        return self.transactions + self.history_transactions
 
     def find_category(self, name: str) -> Category | None:
         category_by_full_name = next((category for category in self.categories if category.full_name == name), None)

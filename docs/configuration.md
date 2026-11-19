@@ -15,6 +15,7 @@ The home folder holds your settings and history. Every command takes the first o
 | `policy.md` | how you categorize, in words, and the places only you know | you, helped by the skill |
 | `policy-candidates.md` | rules you may need later; no agent reads it | you |
 | `verified.yml` | the confirmed category of each transaction, with its reason | the command `approve` |
+| `history.json` | a few fields of each transaction of the last 13 months, and the day of the last check | the command `merge` and the command `approve` |
 | `places.yml` | what kind of place each researched merchant is, with its source and trust | the command `verify`, from the research answers |
 | `data/` | the fetched snapshots and the files of each run | the skills |
 
@@ -33,6 +34,10 @@ The home folder holds your settings and history. Every command takes the first o
 ## policy.md
 
 Rules in words, written as you would explain them to a person, and a section *Places only I know* for names the web cannot explain. The categorizer and the verifier read it on every call, so its rules win over the agents' own idea of a category. Write only your own choices, the ones a stranger would get wrong; the agents already know common places. Where you are unsure whether the agents need a rule, keep it in `policy-candidates.md`, and move it here once a run gets that case wrong.
+
+## history.json
+
+The id, date, kind, account, bank text, amount and category of each transaction of the last 13 months, so a later run fetches only the new days and still shows the categorizer what you chose before and which payments repeat each month. Each fetch replaces the days it covered, so a transaction deleted or changed in Zenmoney is gone or changed here too. History only gives hints: no run proposes a change of a transaction that the fresh fetch does not hold. Delete the file to start over with a fetch of 3 months.
 
 ## places.yml
 

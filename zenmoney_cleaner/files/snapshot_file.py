@@ -14,6 +14,7 @@ def write_snapshot(snapshot: Snapshot, path: Path) -> None:
         "categories": [vars(category) for category in snapshot.categories],
         "accounts": [vars(account) for account in snapshot.accounts],
         "transactions": [_write_transaction(transaction) for transaction in snapshot.transactions],
+        "historyTransactions": [_write_transaction(transaction) for transaction in snapshot.history_transactions],
     }
     path.write_text(json.dumps(raw_snapshot, ensure_ascii=False, indent=1), encoding="utf-8")
 
@@ -25,6 +26,7 @@ def read_snapshot(path: Path) -> Snapshot:
         categories=tuple(Category(**raw) for raw in raw_snapshot["categories"]),
         accounts=tuple(Account(**raw) for raw in raw_snapshot["accounts"]),
         balance_adjustment_category_id=raw_snapshot["balanceAdjustmentCategoryId"],
+        history_transactions=tuple(_read_transaction(raw) for raw in raw_snapshot.get("historyTransactions", [])),
     )
 
 
