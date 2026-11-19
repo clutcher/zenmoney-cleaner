@@ -14,7 +14,7 @@ The other skills never call Zenmoney for data themselves; they read the snapshot
 3. Call `list_transactions` with `from`, `to` and `limit: 200`, and follow `nextCursor` until it is null. Save every page as `pages/page-001.json`, `page-002.json` and so on, in order:
    - A page too large for the reply arrives as a saved file whose path the tool result names; copy that file with `cp`, so no character of it changes.
    - A page that arrives inline is written with the Write tool, exactly as returned.
-4. Save the replies of `list_categories` and `list_accounts` as `categories.json` and `accounts.json` in the run folder, the same way.
+4. Save the replies of `list_categories` and `list_accounts` as `categories.json` and `accounts.json` in the run folder. A reply that arrives as a saved file is copied with `cp` as above. A reply that arrives inline is written with the Write tool with only the fields the code reads, each value exactly as returned, so a large reply stays short: `{"balanceAdjustmentCategoryId": ..., "data": [{"id": ..., "name": ..., "parentId": ...}]}` for the categories and `{"data": [{"id": ..., "name": ..., "instrument": ...}]}` for the accounts, with every category and every account of the reply.
 5. For the corrections skill, also page `list_transactions` with `categoryIds: [<the id of the category that corrections.adjustment_category of config.yml names, else balanceAdjustmentCategoryId of categories.json>]`, `from: 2000-01-01`, `to: <today>` and `limit: 200` into `correction-pages/` the same way, because a correction chain can start years before the date range.
 6. Run the merge, with a second `--pages <run>/correction-pages` where step 5 ran:
 
