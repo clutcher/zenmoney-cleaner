@@ -29,6 +29,8 @@ The home folder holds your settings and history. Every command takes the first o
 
 `rules` holds only strict cases, which code decides without an agent; the first rule that matches decides. A rule matches on `payee` (exact bank texts after `strip`, case ignored, 1 text or a list), `comment` (fragments, case ignored, 1 or a list), `account` (an account name) and `type` (`expense` or `income`), and every key it names must hold. Its action is `categorize` with `category: <key>` (the default), `delete`, or `transfer` with `to_account: <account name>`, and `reason` says why in the proposal. Anything that needs judgment goes into `policy.md` instead.
 
+`history.overlap_days`, 7 by default, is how many days before the newest day of `history.json` each fetch starts, so payments that the bank posts days later with an earlier date are fetched; raise it for a bank that posts up to 60 days late.
+
 `corrections.match_window_days` is how many days before a balance correction a pending purchase may be dated, and `corrections.max_match_size` the most transactions that 1 correction is matched against. `corrections.adjustment_category` is optional: the name of your balance-adjustment category, used instead of the id that Zenmoney reports; the corrections skill writes it when Zenmoney reports none.
 
 ## policy.md

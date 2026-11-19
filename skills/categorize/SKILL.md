@@ -22,7 +22,7 @@ Turn the request into a scope:
 
 `--from` and `--to` take a day as `YYYY-MM-DD` or a month as `YYYY-MM`, which means its first or its last day, so "August to October" is `--from 2026-08 --to 2026-10`, and "the last 3 months" runs from the same day 3 months ago to today. `--account` takes an account name as Zenmoney shows it and repeats for several; `--type expense` means spendings, `--type income` incomes. Every mode takes these options too. Say the scope back to the user in 1 line before you go on.
 
-The snapshot must cover the scope: use the newest snapshot of the fetch-transactions skill when it does and no change was made in Zenmoney since, and else run the fetch-transactions skill for the scope's period with 3 months before it, because the months before show the categorizer the user's habits.
+The snapshot must cover the scope: use the newest snapshot of the fetch-transactions skill when it does and no change was made in Zenmoney since, and else run the fetch-transactions skill for the scope. It fetches only the days since the last fetch, and `history.json` adds the months before, which show the categorizer the user's habits; only on the first run does it fetch 3 months.
 
 ## 2. Prepare
 

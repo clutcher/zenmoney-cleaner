@@ -8,6 +8,7 @@ from zenmoney_cleaner.settings.settings import (
     CategorizeAction,
     CorrectionSettings,
     DeleteAction,
+    HistorySettings,
     Location,
     Rule,
     RuleAction,
@@ -55,6 +56,7 @@ def read_settings(path: Path) -> Settings:
             for index, raw_rule in enumerate(raw.get("rules") or [])
         ),
         corrections=_read_corrections(raw.get("corrections") or {}),
+        history=HistorySettings(overlap_days=int((raw.get("history") or {}).get("overlap_days", 7))),
     )
     problems.raise_if_any()
     return settings

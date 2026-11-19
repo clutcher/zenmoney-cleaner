@@ -58,6 +58,7 @@ from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, Unkn
 
 _RERUN_EXIT_CODE = 2
 _PLACES_FILE_NAME = "places.yml"
+_HISTORY_FILE_NAME = "history.json"
 _EXAMPLE_FOLDER = Path(__file__).resolve().parents[2] / "config.example"
 
 
@@ -146,6 +147,18 @@ def _keep_history(snapshot: Snapshot, history_path: Path, fetched_from: date, fe
     history = read_history(history_path).replace_range(snapshot.transactions, fetched_from, fetched_to)
     write_history(history, history_path)
     return snapshot.with_history_transactions(history.list_transactions(snapshot))
+
+
+def fetch_range(arguments: argparse.Namespace) -> None:
+    settings = read_settings(arguments.home_path / "config.yml")
+    history = read_history(arguments.home_path / _HISTORY_FILE_NAME)
+
+    days_to_fetch = history.plan_fetch(date.today(), settings.history.overlap_days)
+
+    print(f"from: {days_to_fetch.from_date.isoformat()}")
+    print(f"to: {days_to_fetch.to_date.isoformat()}")
+    if days_to_fetch.is_first_run:
+        print("first run: history.json holds no transactions yet, so the fetch takes 3 months")
 
 
 def prepare(arguments: argparse.Namespace) -> None:
@@ -413,6 +426,10 @@ def _build_parser() -> argparse.ArgumentParser:
     merge_parser.add_argument("--fetched-from", help="first day of the main query as YYYY-MM-DD; needed with --history")
     merge_parser.add_argument("--fetched-to", help="last day of the main query as YYYY-MM-DD; needed with --history")
     merge_parser.set_defaults(command=merge, needs_home=False)
+
+    fetch_range_parser = subparsers.add_parser("fetch-range", help="print the days to fetch: since the newest day of history.json minus history.overlap_days, or 3 months on the first run")
+    _add_home_argument(fetch_range_parser, "config.yml and history.json")
+    fetch_range_parser.set_defaults(command=fetch_range)
 
     prepare_parser = subparsers.add_parser("prepare", help="save the scope, decide by rules and write the categorize jobs for the rest")
     prepare_parser.add_argument("--mode", choices=[mode.value for mode in CategorizingMode], required=True,

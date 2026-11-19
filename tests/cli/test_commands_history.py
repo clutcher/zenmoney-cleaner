@@ -1,7 +1,11 @@
+import json
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
-from tests.support.zenmoney_responses import CAFE_ID, build_expense, build_page, read_json, write_fetch, write_home
+import pytest
+
+from tests.support.zenmoney_responses import CAFE_ID, CARD_ID, CONFIG_TEXT, build_expense, build_page, read_json, write_fetch, write_home
 from zenmoney_cleaner.cli.commands import main
 
 
@@ -71,3 +75,33 @@ def test_should_refuse_the_merge_when_the_history_is_given_without_the_fetched_r
     # then
     assert exit_code == 1
     assert not (tmp_path / "history.json").exists()
+
+
+def test_should_fetch_3_months_when_the_history_holds_no_transactions(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    # given
+    home = write_home(tmp_path)
+
+    # when
+    main(["fetch-range", "--home", str(home)])
+
+    # then
+    output_lines = capsys.readouterr().out.splitlines()
+    assert f"from: {(date.today() - timedelta(days=92)).isoformat()}" in output_lines
+    assert any(line.startswith("first run:") for line in output_lines)
+
+
+def test_should_fetch_from_the_newest_history_day_minus_the_overlap_when_the_history_holds_transactions(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # given
+    home = write_home(tmp_path, CONFIG_TEXT + "history: {overlap_days: 10}\n")
+    newest_day = date.today() - timedelta(days=3)
+    raw_entry = {"id": "t-1", "date": newest_day.isoformat(), "kind": "expense", "accountId": CARD_ID, "payee": "CAFE ORBIT", "amount": 4, "categoryId": None}
+    (home / "history.json").write_text(json.dumps({"lastCheck": None, "transactions": [raw_entry]}), encoding="utf-8")
+
+    # when
+    main(["fetch-range", "--home", str(home)])
+
+    # then
+    output_lines = capsys.readouterr().out.splitlines()
+    assert output_lines[1:] == [f"from: {(newest_day - timedelta(days=10)).isoformat()}", f"to: {date.today().isoformat()}"]

@@ -78,12 +78,18 @@ class CorrectionSettings:
 
 
 @dataclass(frozen=True)
+class HistorySettings:
+    overlap_days: int
+
+
+@dataclass(frozen=True)
 class Settings:
     location: Location
     category_names_by_key_map: dict[str, str]
     payee_strip_patterns: tuple[re.Pattern[str], ...]
     rules: tuple[Rule, ...]
     corrections: CorrectionSettings
+    history: HistorySettings
 
     def find_rule(self, transaction: Transaction, merchant_key: str | None) -> Rule | None:
         return next((rule for rule in self.rules if rule.condition.holds(transaction, merchant_key)), None)

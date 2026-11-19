@@ -36,6 +36,9 @@ rules:                          # strict cases only, decided without an agent; t
     to_account: Savings
     reason: moves into the savings pot are transfers
 
+history:
+  overlap_days: 7               # each fetch starts this many days before the newest day of history.json, for payments the bank posts late
+
 corrections:
   match_window_days: 6          # how many days before a correction a pending purchase may be dated
   max_match_size: 5             # the most transactions that 1 correction is matched against

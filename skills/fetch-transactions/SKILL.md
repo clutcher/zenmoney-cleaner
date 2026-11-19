@@ -10,7 +10,7 @@ The other skills never call Zenmoney for data themselves; they read the snapshot
 ## Steps
 
 1. Run `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner home`; `<home>` is the folder it prints. Where it finds none, run the setup skill of zenmoney-cleaner first.
-2. Agree on the date range with the user, and create the run folder `<home>/data/<today>-<short name>/` with a `pages/` folder inside. For the corrections skill, also create `correction-pages/`.
+2. Run `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner fetch-range`. It prints `from` and `to`: from the newest day of `history.json` minus `history.overlap_days` of `config.yml`, so payments that the bank posts late are fetched again, to today. Where it prints `first run`, tell the user that this first fetch takes 3 months because no history exists yet, and that later fetches take only the new days. Where the scope of the skill that sent you here starts earlier than `from`, fetch from that start instead. Create the run folder `<home>/data/<today>-<short name>/` with a `pages/` folder inside. For the corrections skill, also create `correction-pages/`.
 3. Call `list_transactions` with `from`, `to` and `limit: 200`, and follow `nextCursor` until it is null. Save every page as `pages/page-001.json`, `page-002.json` and so on, in order:
    - A page too large for the reply arrives as a saved file whose path the tool result names; copy that file with `cp`, so no character of it changes.
    - A page that arrives inline is written with the Write tool, exactly as returned.
