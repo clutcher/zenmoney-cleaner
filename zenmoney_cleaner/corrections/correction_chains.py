@@ -7,10 +7,9 @@ from zenmoney_cleaner.settings.settings import CorrectionSettings
 from zenmoney_cleaner.snapshot.snapshot import Snapshot
 from zenmoney_cleaner.snapshot.transaction import Transaction
 
-_CENTS_PER_UNIT = 100
 _PENDING_DAYS = 7
 _MATCH_LIMIT = 5
-_ROUNDING_CENTS = 1
+_ROUNDING_MINOR_UNITS = 1
 _CANDIDATE_LIMIT = 5
 
 
@@ -105,8 +104,8 @@ def _split_into_chains(corrections: list[Transaction]) -> tuple[list[tuple[Trans
 def _find_shortest_zero_run(corrections: list[Transaction]) -> tuple[int, int] | None:
     for length in range(2, len(corrections) + 1):
         for start in range(len(corrections) - length + 1):
-            run_cents = sum(_to_cents(correction.signed_amount()) for correction in corrections[start : start + length])
-            if abs(run_cents) <= _ROUNDING_CENTS:
+            run_minor_units = sum(correction.currency.to_minor_units(correction.signed_amount()) for correction in corrections[start : start + length])
+            if abs(run_minor_units) <= _ROUNDING_MINOR_UNITS:
                 return start, start + length
     return None
 
@@ -118,9 +117,12 @@ def _describe_open_chain(
     settings: CorrectionSettings,
     newest_day: date,
 ) -> OpenChain:
-    residual = round(sum(correction.signed_amount() for correction in corrections), 2)
+    currency = corrections[0].currency
+    residual = currency.round_amount(sum(correction.signed_amount() for correction in corrections))
     suspects = tuple(
-        transaction for transaction in account_transactions if _to_cents(abs(transaction.amount)) == _to_cents(abs(residual))
+        transaction
+        for transaction in account_transactions
+        if currency.to_minor_units(abs(transaction.amount)) == currency.to_minor_units(abs(residual))
     )
     return OpenChain(
         account_name=account_name,
@@ -135,17 +137,15 @@ def _describe_open_chain(
 def _match(correction: Transaction, account_transactions: list[Transaction], settings: CorrectionSettings) -> CorrectionMatch:
     window_start = correction.date - timedelta(days=settings.match_window_days)
     candidates = [transaction for transaction in account_transactions if window_start <= transaction.date <= correction.date]
-    target_cents = _to_cents(correction.signed_amount())
+    currency = correction.currency
+    target_minor_units = currency.to_minor_units(correction.signed_amount())
 
     transaction_sets: list[tuple[Transaction, ...]] = []
     for size in range(1, settings.max_match_size + 1):
         for candidate_set in combinations(candidates, size):
-            if sum(_to_cents(transaction.signed_amount()) for transaction in candidate_set) == target_cents:
+            if sum(currency.to_minor_units(transaction.signed_amount()) for transaction in candidate_set) == target_minor_units:
                 transaction_sets.append(candidate_set)
                 if len(transaction_sets) == _MATCH_LIMIT:
                     return CorrectionMatch(correction, tuple(transaction_sets))
     return CorrectionMatch(correction, tuple(transaction_sets))
 
-
-def _to_cents(amount: float) -> int:
-    return round(amount * _CENTS_PER_UNIT)

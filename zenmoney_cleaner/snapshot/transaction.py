@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import date
 from enum import Enum
 
+from zenmoney_cleaner.snapshot.currency import Currency
+
 
 class TransactionKind(Enum):
     EXPENSE = "expense"
@@ -17,6 +19,7 @@ class Transaction:
     account_id: str
     account_name: str
     amount: float
+    currency: Currency
     category_id: str | None
     category_name: str | None
     payee: str

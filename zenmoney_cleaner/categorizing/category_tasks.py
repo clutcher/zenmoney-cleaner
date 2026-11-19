@@ -75,15 +75,15 @@ def split_into_tasks(merchant_groups: tuple[MerchantGroup, ...]) -> tuple[Catego
 
 
 def _describe_habit(merchant_transactions: list[Transaction]) -> MerchantHabit:
-    months_by_amount_map: dict[float, set[str]] = defaultdict(set)
+    months_by_amount_map: dict[tuple[str, float], set[str]] = defaultdict(set)
     for transaction in merchant_transactions:
-        months_by_amount_map[round(transaction.amount, 2)].add(transaction.date.strftime("%Y-%m"))
+        months_by_amount_map[(transaction.currency.code, transaction.currency.round_amount(transaction.amount))].add(transaction.date.strftime("%Y-%m"))
 
     month_count = len({transaction.date.strftime("%Y-%m") for transaction in merchant_transactions})
     most_months_of_1_amount = max((len(months) for months in months_by_amount_map.values()), default=0)
     return MerchantHabit(
         payment_count=len(merchant_transactions),
         month_count=month_count,
-        usual_amount=round(median(transaction.amount for transaction in merchant_transactions), 2),
+        usual_amount=merchant_transactions[0].currency.round_amount(median(transaction.amount for transaction in merchant_transactions)),
         is_monthly_same_amount=most_months_of_1_amount >= _RECURRING_MONTH_COUNT,
     )

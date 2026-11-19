@@ -7,6 +7,7 @@ from tests.support.zenmoney_responses import (
     CATEGORIES_RESPONSE,
     CONFIG_TEXT,
     GROCERIES_ID,
+    YEN_ID,
     build_correction,
     build_expense,
     build_page,
@@ -117,3 +118,14 @@ def test_should_stop_and_name_the_likely_category_when_neither_zenmoney_nor_the_
     assert exit_code == 1
     assert "Balance adjustment (2 of 2)" in error_text
     assert "Groceries" not in error_text
+
+
+def test_should_close_a_chain_within_1_yen_when_the_account_holds_a_currency_without_decimals(tmp_path: Path) -> None:
+    # given
+    yen_pair = [build_correction("c-1", "2025-08-02", -1500, account_id=YEN_ID), build_correction("c-2", "2025-08-03", 1501, account_id=YEN_ID)]
+
+    # when
+    proposal = _find_corrections(tmp_path, yen_pair)
+
+    # then
+    assert sorted(change["deleteId"] for change in proposal["changes"]) == ["c-1", "c-2"]

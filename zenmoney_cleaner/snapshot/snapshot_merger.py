@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Any
 
+from zenmoney_cleaner.snapshot.currency import Currency
 from zenmoney_cleaner.snapshot.snapshot import Account, Category, Snapshot
 from zenmoney_cleaner.snapshot.transaction import Transaction, TransactionKind
 
@@ -80,8 +81,8 @@ def _read_transaction(
     side = raw["expense"] if kind != TransactionKind.INCOME else raw["income"]
     category_id = raw.get("categoryId")
     category_name = next((category.full_name for category in categories if category.id == category_id), None)
-    account_name = next((account.name for account in accounts if account.id == side["accountId"]), None)
-    if account_name is None:
+    account = next((account for account in accounts if account.id == side["accountId"]), None)
+    if account is None:
         raise UnknownAccountError(f"transaction {raw['id']} uses account {side['accountId']}, which the saved accounts do not hold")
 
     merchant_name = merchant_names_by_id_map.get(raw.get("merchantId") or "", "")
@@ -91,8 +92,9 @@ def _read_transaction(
         date=date.fromisoformat(raw["date"]),
         kind=kind,
         account_id=side["accountId"],
-        account_name=account_name,
+        account_name=account.name,
         amount=side["amount"],
+        currency=Currency(account.instrument),
         category_id=category_id,
         category_name=category_name,
         payee=raw.get("originalPayee") or merchant_name,

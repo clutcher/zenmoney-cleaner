@@ -390,4 +390,24 @@ def test_should_number_the_undecided_rows_after_the_changes_when_the_proposal_ho
     # then
     proposal_lines = (run.out / "proposal.md").read_text(encoding="utf-8").splitlines()
     assert any(line.startswith("| 1 | 2025-11-10 | SMOKE CORNER NO.4 |") for line in proposal_lines)
-    assert "| 2 | 2025-11-02 … 2025-11-03 (×2) | TOMAS BREK | Main Card | -12 |  | Groceries → ? | a person |" in proposal_lines
+    assert "| 2 | 2025-11-02 … 2025-11-03 (×2) | TOMAS BREK | Main Card | -12 EUR |  | Groceries → ? | a person |" in proposal_lines
+
+
+def test_should_show_1_row_per_currency_when_an_undecided_merchant_is_paid_in_2_currencies(tmp_path: Path) -> None:
+    # given
+    euro_payment = build_expense("t-1", "2025-11-02", 6, "TOMAS BREK", GROCERIES_ID)
+    dollar_payment = build_expense("t-2", "2025-11-03", 7, "TOMAS BREK", GROCERIES_ID, account_id=USD_ID)
+    run = start_run(tmp_path, [euro_payment, dollar_payment], "recheck-all")
+    run.run("prepare")
+    unsearchable_answer = {"category": None, "confidence": "low", "reason": "a person", "searchable": False}
+    run.answer_every_task("categorize", {"t-1": unsearchable_answer, "t-2": unsearchable_answer})
+    run.run("route")
+    run.run("verify")
+
+    # when
+    run.run("propose")
+
+    # then
+    proposal_lines = (run.out / "proposal.md").read_text(encoding="utf-8").splitlines()
+    assert "| 1 | 2025-11-02 | TOMAS BREK | Main Card | -6 EUR |  | Groceries → ? | a person |" in proposal_lines
+    assert "| 2 | 2025-11-03 | TOMAS BREK | USD | -7 USD |  | Groceries → ? | a person |" in proposal_lines

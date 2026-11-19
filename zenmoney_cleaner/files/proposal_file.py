@@ -7,6 +7,7 @@ from zenmoney_cleaner.categorizing.category_catalog import CategoryCatalog
 from zenmoney_cleaner.categorizing.category_proposal import Agreement, CategoryProposal, ProposedChange, UnknownMerchant
 from zenmoney_cleaner.categorizing.judgement import ConvertToTransfer, Delete, Recategorize
 from zenmoney_cleaner.settings.settings import Confidence
+from zenmoney_cleaner.snapshot.currency import Currency
 from zenmoney_cleaner.snapshot.transaction import Transaction, TransactionKind
 
 _NO_PAYEE_TEXT = "(no payee)"
@@ -91,6 +92,7 @@ def write_transaction_line(transaction: Transaction) -> dict[str, Any]:
         "date": transaction.date.isoformat(),
         "account": transaction.account_name,
         "amount": transaction.signed_amount(),
+        "currency": transaction.currency.code,
         "payee": transaction.payee,
         "comment": transaction.comment,
         "currentCategory": transaction.category_name,
@@ -104,11 +106,18 @@ def _write_unknown_merchant(merchant: UnknownMerchant) -> dict[str, Any]:
         "merchantKey": merchant.merchant_key,
         "payees": sorted({transaction.payee for transaction in merchant.transactions}),
         "transactionCount": len(merchant.transactions),
-        "totalAmount": round(sum(transaction.signed_amount() for transaction in merchant.transactions), 2),
+        "totalAmountsByCurrency": _sum_by_currency(merchant.transactions),
         "currentCategories": dict(current_category_counts),
         "reasons": list(merchant.reasons),
         "examples": [write_transaction_line(transaction) for transaction in merchant.transactions[:_EXAMPLE_COUNT]],
     }
+
+
+def _sum_by_currency(transactions: tuple[Transaction, ...]) -> dict[str, float]:
+    amounts_by_currency_map: dict[Currency, float] = {}
+    for transaction in transactions:
+        amounts_by_currency_map[transaction.currency] = amounts_by_currency_map.get(transaction.currency, 0) + transaction.signed_amount()
+    return {currency.code: currency.round_amount(amount) for currency, amount in amounts_by_currency_map.items()}
 
 
 def _render_markdown(
@@ -124,7 +133,7 @@ def _render_markdown(
     )
     lines = [f"# Category proposal ({mode})", "", summary_text, ""]
 
-    change_groups = _group_by_merchant(raw_changes)
+    change_groups = _group_changes(raw_changes)
     lines += ["## Changes", "", _ROW_HEADER, _ROW_RULE]
     for number, (merchant_key, merchant_changes) in enumerate(change_groups, start=1):
         first_change = merchant_changes[0]
@@ -134,8 +143,12 @@ def _render_markdown(
     lines.append("")
 
     lines += ["## Undecided", "", _ROW_HEADER, _ROW_RULE]
-    for number, merchant in enumerate(raw_unknown_merchants, start=len(change_groups) + 1):
-        transactions = [item["transaction"] for item in raw_undecided if item["merchantKey"] == merchant["merchantKey"]]
+    undecided_rows = [
+        (merchant, transactions)
+        for merchant in raw_unknown_merchants
+        for transactions in _split_by_currency([item["transaction"] for item in raw_undecided if item["merchantKey"] == merchant["merchantKey"]])
+    ]
+    for number, (merchant, transactions) in enumerate(undecided_rows, start=len(change_groups) + 1):
         current_categories_text = ", ".join(merchant["currentCategories"])
         lines.append(_render_row(number, merchant["merchantKey"], transactions, f"{current_categories_text} → ?", "; ".join(merchant["reasons"])))
     lines.append("")
@@ -154,19 +167,28 @@ def _render_row(number: int, merchant_key: str | None, transactions: list[dict[s
     dates = sorted(transaction["date"] for transaction in transactions)
     date_text = dates[0] if len(dates) == 1 else f"{dates[0]} … {dates[-1]} (×{len(dates)})"
     account_text = ", ".join(dict.fromkeys(transaction["account"] for transaction in transactions))
-    amount_text = str(round(sum(transaction["amount"] for transaction in transactions), 2))
+    currency = Currency(transactions[0]["currency"])
+    amount_text = f"{currency.round_amount(sum(transaction['amount'] for transaction in transactions))} {currency.code}"
     comment_text = next((transaction["comment"] for transaction in transactions if transaction["comment"]), "")
     cells = [str(number), date_text, merchant_key or _NO_PAYEE_TEXT, account_text, amount_text, comment_text, target_text, why_text]
     return "| " + " | ".join(cell.replace("|", "/") for cell in cells) + " |"
 
 
-def _group_by_merchant(raw_changes: list[dict[str, Any]]) -> list[tuple[str | None, list[dict[str, Any]]]]:
-    changes_by_group_map: dict[tuple[str | None, str], list[dict[str, Any]]] = {}
+def _group_changes(raw_changes: list[dict[str, Any]]) -> list[tuple[str | None, list[dict[str, Any]]]]:
+    changes_by_group_map: dict[tuple[str | None, str, str], list[dict[str, Any]]] = {}
     for change in raw_changes:
-        changes_by_group_map.setdefault((change["merchantKey"], _describe_target(change)), []).append(change)
+        group_key = (change["merchantKey"], _describe_target(change), change["transaction"]["currency"])
+        changes_by_group_map.setdefault(group_key, []).append(change)
 
     groups = sorted(changes_by_group_map.items(), key=lambda group: -len(group[1]))
-    return [(merchant_key, changes) for (merchant_key, _), changes in groups]
+    return [(merchant_key, changes) for (merchant_key, _, _), changes in groups]
+
+
+def _split_by_currency(transactions: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
+    transactions_by_currency_map: dict[str, list[dict[str, Any]]] = {}
+    for transaction in transactions:
+        transactions_by_currency_map.setdefault(transaction["currency"], []).append(transaction)
+    return list(transactions_by_currency_map.values())
 
 
 def _group_agreements(raw_agreements: list[dict[str, Any]]) -> list[tuple[str | None, list[dict[str, Any]]]]:

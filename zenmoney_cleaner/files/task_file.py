@@ -236,6 +236,7 @@ def _write_transaction(transaction: Transaction) -> dict[str, Any]:
         "weekday": transaction.date.strftime("%a"),
         "account": transaction.account_name,
         "amount": transaction.signed_amount(),
+        "currency": transaction.currency.code,
         "payee": transaction.payee,
         "comment": transaction.comment,
         "currentCategory": transaction.category_name,

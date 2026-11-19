@@ -11,6 +11,7 @@ ADJUSTMENT_ID = "3841d2f2-5cc9-48db-bd92-34f02a54a36f"
 CARD_ID = "d35f63ad-bc45-42df-9712-3672fb40b683"
 USD_ID = "95b317b4-a286-4c8b-bd9a-93e326c279f7"
 SAVINGS_ID = "da79d28b-37e3-4427-be25-544c8e5280bf"
+YEN_ID = "29a7a447-edb7-48b0-9197-cced6e78ab91"
 
 CATEGORIES_RESPONSE = {
     "balanceAdjustmentCategoryId": ADJUSTMENT_ID,
@@ -29,6 +30,7 @@ ACCOUNTS_RESPONSE = {
         {"id": CARD_ID, "name": "Main Card", "instrument": "EUR"},
         {"id": USD_ID, "name": "USD ", "instrument": "USD"},
         {"id": SAVINGS_ID, "name": "Rainy Day Fund", "instrument": "EUR"},
+        {"id": YEN_ID, "name": "Travel Yen", "instrument": "JPY"},
     ]
 }
 
@@ -84,12 +86,14 @@ def build_income(transaction_id: str, day: str, amount: float, payee: str, accou
     return {"id": transaction_id, "date": day, "income": {"accountId": account_id, "amount": amount}, "originalPayee": payee}
 
 
-def build_correction(transaction_id: str, day: str, signed_amount: float, source: str | None = "plugin") -> dict[str, Any]:
+def build_correction(
+    transaction_id: str, day: str, signed_amount: float, source: str | None = "plugin", account_id: str = CARD_ID
+) -> dict[str, Any]:
     side = "expense" if signed_amount < 0 else "income"
     return {
         "id": transaction_id,
         "date": day,
-        side: {"accountId": CARD_ID, "amount": abs(signed_amount)},
+        side: {"accountId": account_id, "amount": abs(signed_amount)},
         "categoryId": ADJUSTMENT_ID,
         "comment": "Account balance auto-adjustment",
         "source": source,

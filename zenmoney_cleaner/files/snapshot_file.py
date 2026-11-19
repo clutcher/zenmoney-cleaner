@@ -3,6 +3,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from zenmoney_cleaner.snapshot.currency import Currency
 from zenmoney_cleaner.snapshot.snapshot import Account, Category, Snapshot
 from zenmoney_cleaner.snapshot.transaction import Transaction, TransactionKind
 
@@ -28,8 +29,8 @@ def read_snapshot(path: Path) -> Snapshot:
 
 
 def _write_transaction(transaction: Transaction) -> dict[str, Any]:
-    return vars(transaction) | {"date": transaction.date.isoformat(), "kind": transaction.kind.value}
+    return vars(transaction) | {"date": transaction.date.isoformat(), "kind": transaction.kind.value, "currency": transaction.currency.code}
 
 
 def _read_transaction(raw: dict[str, Any]) -> Transaction:
-    return Transaction(**(raw | {"date": date.fromisoformat(raw["date"]), "kind": TransactionKind(raw["kind"])}))
+    return Transaction(**(raw | {"date": date.fromisoformat(raw["date"]), "kind": TransactionKind(raw["kind"]), "currency": Currency(raw["currency"])}))
