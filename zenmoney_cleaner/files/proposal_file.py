@@ -12,6 +12,7 @@ from zenmoney_cleaner.snapshot.transaction import Transaction, TransactionKind
 
 _NO_PAYEE_TEXT = "(no payee)"
 _EXAMPLE_COUNT = 3
+_SHOWN_REASON_COUNT = 2
 _ROW_HEADER = "| # | Date | Shop | Account | Amount | Comment | Now → New | Why |"
 _ROW_RULE = "|---|---|---|---|---|---|---|---|"
 
@@ -25,6 +26,7 @@ def write_category_proposal(proposal: CategoryProposal, catalog: CategoryCatalog
             "merchantKey": merchant.merchant_key,
             "transaction": write_transaction_line(undecided.transaction),
             "likelyCategory": undecided.judgement.likely_category_name,
+            "reason": undecided.judgement.reason,
         }
         for merchant in proposal.unknown_merchants
         for undecided in merchant.undecided_transactions
@@ -155,7 +157,7 @@ def _render_markdown(
     for number, (merchant, items) in enumerate(undecided_rows, start=len(change_groups) + 1):
         transactions = [item["transaction"] for item in items]
         target_text = f"{', '.join(merchant['currentCategories'])} → {_describe_likely_categories(items)}"
-        lines.append(_render_row(number, merchant["merchantKey"], transactions, target_text, "; ".join(merchant["reasons"])))
+        lines.append(_render_row(number, merchant["merchantKey"], transactions, target_text, _summarize_reasons(items)))
     lines.append("")
 
     lines += ["## Confirmed", "", "| Merchant | Category | Transactions | Evidence |", "|---|---|---|---|"]
@@ -194,6 +196,15 @@ def _split_by_currency(raw_undecided: list[dict[str, Any]]) -> list[list[dict[st
     for item in raw_undecided:
         items_by_currency_map.setdefault(item["transaction"]["currency"], []).append(item)
     return list(items_by_currency_map.values())
+
+
+def _summarize_reasons(raw_undecided: list[dict[str, Any]]) -> str:
+    reasons = list(dict.fromkeys(item["reason"] for item in raw_undecided))
+    reasons_text = "; ".join(reasons[:_SHOWN_REASON_COUNT])
+    if len(reasons) <= _SHOWN_REASON_COUNT:
+        return reasons_text
+
+    return f"{reasons_text} (+{len(reasons) - _SHOWN_REASON_COUNT} similar)"
 
 
 def _describe_likely_categories(raw_undecided: list[dict[str, Any]]) -> str:

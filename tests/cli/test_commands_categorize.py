@@ -448,3 +448,23 @@ def test_should_show_the_current_category_as_likely_when_the_verifier_rejects_th
     # then
     proposal_text = (run.out / "proposal.md").read_text(encoding="utf-8")
     assert "| Clothing → Clothing? |" in proposal_text
+
+
+def test_should_show_2_reasons_and_count_the_rest_when_a_grouped_row_holds_more(tmp_path: Path) -> None:
+    # given
+    payments = [build_expense(f"t-{day}", f"2025-11-{day:02}", day, "TOMAS BREK", GROCERIES_ID) for day in (2, 3, 4, 5)]
+    run = start_run(tmp_path, payments, "recheck-all")
+    run.run("prepare")
+    run.answer_every_task(
+        "categorize",
+        {f"t-{day}": {"category": None, "confidence": "low", "reason": f"a person, {day} EUR", "searchable": False} for day in (2, 3, 4, 5)},
+    )
+    run.run("route")
+    run.run("verify")
+
+    # when
+    run.run("propose")
+
+    # then
+    proposal_text = (run.out / "proposal.md").read_text(encoding="utf-8")
+    assert "| a person, 2 EUR; a person, 3 EUR (+2 similar) |" in proposal_text
