@@ -1,11 +1,20 @@
 {
   "name": "zenmoney-cleaner",
-  "owner": {"name": "zenmoney-cleaner"},
+  "owner": {
+    "name": "Igor Zarvanskyi"
+  },
+  "metadata": {
+    "description": "The zenmoney-cleaner plugin for Claude Code: clean up Zenmoney categories and balance corrections."
+  },
   "plugins": [
     {
       "name": "zenmoney-cleaner",
       "source": "./",
-      "description": "Clean up Zenmoney data with Claude Code through the Zenmoney connector."
+      "description": "Clean up Zenmoney data: categorize empty, new or chosen transactions with agents that follow your rules in words and research unknown places, and remove stacked balance corrections. Every change is proposed first and applied only after approval.",
+      "homepage": "https://github.com/clutcher/zenmoney-cleaner",
+      "repository": "https://github.com/clutcher/zenmoney-cleaner",
+      "license": "MIT",
+      "category": "productivity"
     }
   ]
 }

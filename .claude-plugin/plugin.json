@@ -5,6 +5,8 @@
   "author": {
     "name": "Igor Zarvanskyi"
   },
+  "homepage": "https://github.com/clutcher/zenmoney-cleaner",
+  "repository": "https://github.com/clutcher/zenmoney-cleaner",
   "license": "MIT",
   "keywords": [
     "zenmoney",

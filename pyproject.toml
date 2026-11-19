@@ -3,6 +3,8 @@ name = "zenmoney-cleaner"
 version = "0.1.0"
 description = "Clean up Zenmoney data with Claude Code: categories, rechecks and balance corrections"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Igor Zarvanskyi"}]
 dependencies = ["PyYAML>=6"]
 
 [project.optional-dependencies]
