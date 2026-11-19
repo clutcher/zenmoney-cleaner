@@ -22,6 +22,7 @@ from zenmoney_cleaner.categorizing.category_tasks import MerchantGroup, split_in
 from zenmoney_cleaner.categorizing.rule_categorizer import RuleCategorizer, TransferTargetError
 from zenmoney_cleaner.corrections.correction_chains import MissingAdjustmentCategoryError, find_correction_chains
 from zenmoney_cleaner.files.corrections_file import write_corrections_proposal
+from zenmoney_cleaner.files.first_settings_file import HomeAlreadySetUpError, write_first_settings
 from zenmoney_cleaner.files.proposal_file import write_category_proposal
 from zenmoney_cleaner.categorizing.known_places import KnownPlaces
 from zenmoney_cleaner.files.places_file import read_known_places, record_places
@@ -48,12 +49,14 @@ from zenmoney_cleaner.files.task_file import (
 from zenmoney_cleaner.files.verified_file import read_verified_transactions, record_confirmations
 from zenmoney_cleaner.home.home_folder import HOME_VARIABLE, HomeFinder, HomePlace, MissingHomeError
 from zenmoney_cleaner.payee.merchant_key import MerchantKeyMaker
-from zenmoney_cleaner.settings.settings import Confidence, Settings
+from zenmoney_cleaner.settings.category_keys import make_category_names_by_key_map
+from zenmoney_cleaner.settings.settings import Confidence, Location, Settings
 from zenmoney_cleaner.snapshot.transaction import TransactionKind
-from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, UnknownAccountError, merge_snapshot
+from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, UnknownAccountError, merge_snapshot, read_categories
 
 _RERUN_EXIT_CODE = 2
 _PLACES_FILE_NAME = "places.yml"
+_EXAMPLE_FOLDER = Path(__file__).resolve().parents[2] / "config.example"
 _USER_ERRORS = (
     SettingsError,
     UnknownCategoryError,
@@ -65,6 +68,7 @@ _USER_ERRORS = (
     MissingAdjustmentCategoryError,
     ProposalFormatError,
     MissingHomeError,
+    HomeAlreadySetUpError,
 )
 
 
@@ -99,6 +103,16 @@ def home(arguments: argparse.Namespace) -> None:
     print("home: none found; the setup skill creates 1 of these:")
     print(f"{HomePlace.PROJECT.value}: {finder.locate(HomePlace.PROJECT)} (this folder only)")
     print(f"{HomePlace.USER_ACCOUNT.value}: {finder.locate(HomePlace.USER_ACCOUNT)} (works from any folder)")
+
+
+def init(arguments: argparse.Namespace) -> None:
+    home_path = HomeFinder.for_this_process().locate(HomePlace(arguments.place))
+    categories_response = json.loads(Path(arguments.categories).read_text(encoding="utf-8"))
+    categories = read_categories(categories_response["data"])
+    category_names_by_key_map = make_category_names_by_key_map(categories, categories_response.get("balanceAdjustmentCategoryId"))
+
+    write_first_settings(home_path, Location(arguments.country, arguments.country_code, arguments.city), category_names_by_key_map, _EXAMPLE_FOLDER)
+    print(f"home: {home_path} created, with {len(category_names_by_key_map)} categories in config.yml and the example policy.md")
 
 
 def merge(arguments: argparse.Namespace) -> None:
@@ -348,6 +362,14 @@ def _build_parser() -> argparse.ArgumentParser:
 
     home_parser = subparsers.add_parser("home", help="print the home folder found, or the 2 places the setup can create it")
     home_parser.set_defaults(command=home, needs_home=False)
+
+    init_parser = subparsers.add_parser("init", help="create the home folder with config.yml from the Zenmoney categories and the example policy.md")
+    init_parser.add_argument("--place", required=True, choices=[place.value for place in HomePlace], help="project: this folder only; user-account: works from any folder")
+    init_parser.add_argument("--categories", required=True, help="saved list_categories response")
+    init_parser.add_argument("--country", required=True)
+    init_parser.add_argument("--country-code", required=True, help="2-letter code of the country")
+    init_parser.add_argument("--city", help="home city; optional")
+    init_parser.set_defaults(command=init, needs_home=False)
 
     merge_parser = subparsers.add_parser("merge", help="join fetched pages into 1 snapshot")
     merge_parser.add_argument(

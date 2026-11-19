@@ -22,7 +22,7 @@ The home folder holds your settings and history. Every command takes the first o
 
 `location` is your country and its 2-letter code, both required, and your home city, which you may leave out. The researcher searches there, and in the business register of that country, when a bank text names no city.
 
-`categories` maps a short key to the name of a Zenmoney category, exactly as Zenmoney shows it. The rules and the agents answer with the keys. A name that Zenmoney does not have stops every command, so a renamed category in Zenmoney shows up at once. List every category you want the agents to use, and leave out the ones they must never pick.
+`categories` maps a short key to the name of a Zenmoney category, exactly as Zenmoney shows it; a subcategory may be written with its parent, such as `Food / Cafes`. The setup writes every category of your Zenmoney here. The rules and the agents answer with the keys. A name that Zenmoney does not have stops every command, so a renamed category in Zenmoney shows up at once. List every category you want the agents to use, and leave out the ones they must never pick.
 
 `payee.strip` holds regular expressions that remove bank noise from a bank text, such as a country tail, a city or a store number. The payments of 1 merchant then group together, and the agents judge them as 1 place.
 

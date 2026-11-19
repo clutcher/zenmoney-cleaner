@@ -18,7 +18,7 @@ Ask Claude in your own words:
 - "Recheck the spendings of the account Card from August to October."
 - "Clean up the balance corrections."
 
-The first run creates the home folder for your settings and history, for your user account or for the current folder only. Name your categories and your strict rules in `config.yml`, and write how you categorize in `policy.md`; [docs/configuration.md](docs/configuration.md) explains each file.
+The first run sets up the home folder for your settings and history, for your user account or for the current folder only: it fills `config.yml` with your Zenmoney categories, asks your country, and writes your first rules into `policy.md`. Ask Claude to change any of them later; [docs/configuration.md](docs/configuration.md) explains each file.
 
 ## Cost
 

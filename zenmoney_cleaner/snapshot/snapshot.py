@@ -33,6 +33,10 @@ class Snapshot:
     balance_adjustment_category_id: str | None
 
     def find_category(self, name: str) -> Category | None:
+        category_by_full_name = next((category for category in self.categories if category.full_name == name), None)
+        if category_by_full_name is not None:
+            return category_by_full_name
+
         return next((category for category in self.categories if category.name == name), None)
 
     def find_account(self, name: str) -> Account | None:

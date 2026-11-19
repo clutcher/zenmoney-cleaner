@@ -7,7 +7,7 @@ description: Clean up the balance corrections that a Zenmoney bank sync stacks u
 
 You run these steps in order and decide nothing the steps do not name. The code finds the chains; the user decides every deletion.
 
-`<cli>` stands for `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner`, `<out>` for the folder `<run>/corrections`. `<home>` is the folder that `<cli> home` prints; every command finds it the same way by itself and prints it.
+`<cli>` stands for `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner`, `<out>` for the folder `<run>/corrections`. `<home>` is the folder that `<cli> home` prints; every command finds it the same way by itself and prints it. Where it finds none, run the setup skill of zenmoney-cleaner first.
 
 Never rename, edit or delete the balance-adjustment category itself, and never move a transaction into or out of it: Zenmoney finds that category by its name, so a renamed category loses its role, and the code reads it only by the id `balanceAdjustmentCategoryId` of `list_categories`.
 

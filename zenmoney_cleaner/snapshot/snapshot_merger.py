@@ -20,7 +20,7 @@ def merge_snapshot(pages_by_query: list[list[RawObject]], categories_response: R
         _check_pages_complete(query_pages)
     pages = [page for query_pages in pages_by_query for page in query_pages]
 
-    categories = _read_categories(categories_response["data"])
+    categories = read_categories(categories_response["data"])
     accounts = tuple(_read_account(raw_account) for raw_account in accounts_response["data"])
     balance_adjustment_category_id = categories_response.get("balanceAdjustmentCategoryId")
     merchant_names_by_id_map = _collect_merchant_names(pages)
@@ -47,7 +47,7 @@ def _check_pages_complete(pages: list[RawObject]) -> None:
         )
 
 
-def _read_categories(raw_categories: list[RawObject]) -> tuple[Category, ...]:
+def read_categories(raw_categories: list[RawObject]) -> tuple[Category, ...]:
     names_by_id_map = {raw_category["id"]: raw_category["name"].strip() for raw_category in raw_categories}
     return tuple(
         Category(

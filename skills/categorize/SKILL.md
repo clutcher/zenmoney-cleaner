@@ -8,7 +8,7 @@ compatibility: Runs in Claude Code only, because it needs the Workflow tool and 
 
 You run these steps in order and decide nothing the steps do not name. Code does every step that has 1 right answer; agents do the judging; the user decides every change.
 
-`<cli>` stands for `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner`, `<out>` for a new folder `<run>/<mode>-<short name>`, and `<args>` for `--snapshot <run>/snapshot.json --out <out>`. `<home>` is the folder that `<cli> home` prints; every command finds it the same way by itself and prints it. It holds `config.yml`, `policy.md`, `verified.yml` and `places.yml`.
+`<cli>` stands for `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner`, `<out>` for a new folder `<run>/<mode>-<short name>`, and `<args>` for `--snapshot <run>/snapshot.json --out <out>`. `<home>` is the folder that `<cli> home` prints; every command finds it the same way by itself and prints it. Where it finds none, run the setup skill of zenmoney-cleaner first. It holds `config.yml`, `policy.md`, `verified.yml` and `places.yml`.
 
 ## 1. Scope
 
