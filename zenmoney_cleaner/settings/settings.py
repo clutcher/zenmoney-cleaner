@@ -19,9 +19,9 @@ _CONFIDENCE_ORDER = [Confidence.HIGH, Confidence.MEDIUM, Confidence.LOW]
 
 @dataclass(frozen=True)
 class Location:
-    city: str
     country: str
     country_code: str
+    city: str | None = None
 
 
 @dataclass(frozen=True)

@@ -325,6 +325,19 @@ def test_should_leave_a_merchant_unresearched_when_the_agent_finds_nothing_to_se
     assert run.read_proposal()["undecided"][0]["merchantKey"] == "MARTA LOVELL QUINN"
 
 
+def test_should_hand_the_agent_only_the_country_when_the_location_names_no_city(tmp_path: Path) -> None:
+    # given
+    config_without_city = "location: {country: Examplia, country_code: XA}\ncategories: {cafe: Cafes & Restaurants}\n"
+    run = start_run(tmp_path, [build_expense("t-1", "2025-11-12", 2.9, "CRUMB BAKERY")], "without-category", config_text=config_without_city)
+
+    # when
+    exit_code = run.run("prepare")
+
+    # then
+    assert exit_code == 0
+    assert run.read_tasks("categorize")[0]["location"] == {"country": "Examplia", "country_code": "XA", "city": None}
+
+
 def test_should_stop_with_an_error_when_a_rule_names_an_unknown_category(tmp_path: Path) -> None:
     # given
     config_with_typo = """

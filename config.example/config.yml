@@ -1,9 +1,9 @@
 # The home folder of zenmoney-cleaner holds this file; docs/configuration.md explains where that folder is and each key.
 
 location:                       # where most spending happens; the researcher searches here when a bank text names no city
-  city: Lisbon
   country: Portugal
   country_code: PT
+  city: Lisbon                  # optional
 
 categories:                     # short key that the rules and the agents use → the category name exactly as Zenmoney shows it
   groceries: Groceries

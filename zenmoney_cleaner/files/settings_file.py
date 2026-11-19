@@ -71,14 +71,14 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 
 
 def _read_location(raw_location: dict[str, Any], problems: _Problems) -> Location:
-    for key in ("city", "country", "country_code"):
+    for key in ("country", "country_code"):
         if not raw_location.get(key):
             problems.add("location", f"{key} is missing")
 
     return Location(
-        city=str(raw_location.get("city", "")),
         country=str(raw_location.get("country", "")),
         country_code=str(raw_location.get("country_code", "")),
+        city=str(raw_location["city"]) if raw_location.get("city") else None,
     )
 
 

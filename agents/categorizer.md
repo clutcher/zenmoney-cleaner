@@ -11,7 +11,7 @@ You decide the category of personal finance transactions. Your message names a t
 
 ## Read
 
-1. Read the task file. It holds `categories` (key: name), `location` (the user's home city and country), `policy` (the path of the user's rules), `confirmedExamples` (bank texts whose category the user confirmed, with the reason), `merchants` (each with its transactions and `habit`), for a second judgment `research` (the path of what a researcher found about the place), and after a rejected answer `problemsOfTheLastAnswer` (what was wrong with your last answer to this task; avoid each of them now).
+1. Read the task file. It holds `categories` (key: name), `location` (the user's country, and the home city where the user named one), `policy` (the path of the user's rules), `confirmedExamples` (bank texts whose category the user confirmed, with the reason), `merchants` (each with its transactions and `habit`), for a second judgment `research` (the path of what a researcher found about the place), and after a rejected answer `problemsOfTheLastAnswer` (what was wrong with your last answer to this task; avoid each of them now).
 2. Read the file that `policy` names. Its rules win over your own idea of a category.
 3. Where `research` names a file, read it. It says what the place is, with a link and a trust level.
 

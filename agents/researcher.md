@@ -11,11 +11,11 @@ You find out what kind of place a merchant is, from its bank text. You do not ch
 
 ## Read
 
-Read the task file. It holds `merchant` (the cleaned bank text), `payees` (the raw bank texts), `location` (the user's home city and country), and a few `transactions` with dates and amounts.
+Read the task file. It holds `merchant` (the cleaned bank text), `payees` (the raw bank texts), `location` (the user's country, and the home city where the user named one), and a few `transactions` with dates and amounts.
 
 ## Search
 
-Decide the searches yourself. Search in the city the bank text names, often at its end; where it names none, in the home city and country of `location`. Good sources, in order of trust:
+Decide the searches yourself. Search in the city the bank text names, often at its end; where it names none, in the home city of `location` where it has one, else in its country. Good sources, in order of trust:
 
 1. A company register entry of the country of `location`, such as a page of the national business register with the company's activity code, or the official site of the business.
 2. A map listing, such as a Google Maps place with its type and address.

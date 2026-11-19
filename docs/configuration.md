@@ -20,7 +20,7 @@ The home folder holds your settings and history. Every command takes the first o
 
 ## config.yml
 
-`location` is your home city, country and 2-letter country code. The researcher searches there, and in the business register of that country, when a bank text names no city.
+`location` is your country and its 2-letter code, both required, and your home city, which you may leave out. The researcher searches there, and in the business register of that country, when a bank text names no city.
 
 `categories` maps a short key to the name of a Zenmoney category, exactly as Zenmoney shows it. The rules and the agents answer with the keys. A name that Zenmoney does not have stops every command, so a renamed category in Zenmoney shows up at once. List every category you want the agents to use, and leave out the ones they must never pick.
 
