@@ -1,6 +1,13 @@
 # Configuration
 
-The home folder is `$ZENMONEY_CLEANER_HOME`, else `local/` in the project where Claude runs. The first fetch copies `config.example/` there. Keep it out of version control, because it holds your own rules and data.
+The home folder holds your settings and history. Every command takes the first of these that it finds, and never merges 2 of them:
+
+1. The folder of the option `--home`.
+2. The folder of the variable `$ZENMONEY_CLEANER_HOME`.
+3. `zenmoney-cleaner/` in the current folder, where it holds `config.yml`: project mode, for this folder only.
+4. `zenmoney-cleaner/` in the config folder of your user account, where it holds `config.yml`, which works from any folder: `$XDG_CONFIG_HOME` or `~/.config` on Linux, `~/Library/Application Support` on macOS, `%APPDATA%` on Windows.
+
+`python3 -m zenmoney_cleaner home` prints the folder found, or the 2 places where the first run can create it. Every command prints the folder it used. In project mode, keep `zenmoney-cleaner/` out of version control, because it holds your own rules and data.
 
 | File | Holds | Written by |
 |---|---|---|

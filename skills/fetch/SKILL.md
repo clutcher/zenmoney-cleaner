@@ -9,7 +9,7 @@ The other skills never call Zenmoney for data themselves; they read the snapshot
 
 ## Steps
 
-1. Find the home folder: `$ZENMONEY_CLEANER_HOME`, else `local/` in the current project. Where it holds no `config.yml`, copy `${CLAUDE_PLUGIN_ROOT}/config.example/` there, and help the user fill `location` and `categories` with their real Zenmoney category names before going on.
+1. Run `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner home`; `<home>` is the folder it prints. Where it finds none, create the project place it names, copy `${CLAUDE_PLUGIN_ROOT}/config.example/` there, and help the user fill `location` and `categories` with their real Zenmoney category names before going on.
 2. Agree on the date range with the user, and create the run folder `<home>/data/<today>-<short name>/` with a `pages/` folder inside. For the corrections skill, also create `correction-pages/`.
 3. Call `list_transactions` with `from`, `to` and `limit: 200`, and follow `nextCursor` until it is null. Save every page as `pages/page-001.json`, `page-002.json` and so on, in order:
    - A page too large for the reply arrives as a saved file whose path the tool result names; copy that file with `cp`, so no character of it changes.

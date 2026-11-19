@@ -18,7 +18,7 @@ Ask Claude in your own words:
 - "Recheck the spendings of the account Card from August to October."
 - "Clean up the balance corrections."
 
-The first fetch copies `config.example/` into `local/` of your project. Name your categories and your strict rules in `config.yml`, and write how you categorize in `policy.md`; [docs/configuration.md](docs/configuration.md) explains each file.
+The first run creates the home folder for your settings and history, for your user account or for the current folder only. Name your categories and your strict rules in `config.yml`, and write how you categorize in `policy.md`; [docs/configuration.md](docs/configuration.md) explains each file.
 
 ## Cost
 

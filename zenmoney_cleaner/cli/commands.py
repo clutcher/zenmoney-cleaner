@@ -1,6 +1,5 @@
 import argparse
 import json
-import os
 import sys
 from dataclasses import dataclass
 from collections.abc import Callable
@@ -47,13 +46,13 @@ from zenmoney_cleaner.files.task_file import (
     write_verify_jobs,
 )
 from zenmoney_cleaner.files.verified_file import read_verified_transactions, record_confirmations
+from zenmoney_cleaner.home.home_folder import HOME_VARIABLE, HomeFinder, HomePlace, MissingHomeError
 from zenmoney_cleaner.payee.merchant_key import MerchantKeyMaker
 from zenmoney_cleaner.settings.settings import Confidence, Settings
 from zenmoney_cleaner.snapshot.transaction import TransactionKind
 from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, UnknownAccountError, merge_snapshot
 
 _RERUN_EXIT_CODE = 2
-_HOME_VARIABLE = "ZENMONEY_CLEANER_HOME"
 _PLACES_FILE_NAME = "places.yml"
 _USER_ERRORS = (
     SettingsError,
@@ -65,6 +64,7 @@ _USER_ERRORS = (
     MissingScopeError,
     MissingAdjustmentCategoryError,
     ProposalFormatError,
+    MissingHomeError,
 )
 
 
@@ -72,9 +72,13 @@ class RerunNeededError(Exception):
     pass
 
 
+
 def main(arguments: list[str] | None = None) -> int:
     parsed_arguments = _build_parser().parse_args(arguments)
     try:
+        if parsed_arguments.needs_home:
+            parsed_arguments.home_path = _require_home(parsed_arguments.home)
+            print(f"home: {parsed_arguments.home_path}")
         parsed_arguments.command(parsed_arguments)
     except RerunNeededError as error:
         print(f"rerun: {error}")
@@ -83,6 +87,18 @@ def main(arguments: list[str] | None = None) -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     return 0
+
+
+def home(arguments: argparse.Namespace) -> None:
+    finder = HomeFinder.for_this_process()
+    home_folder = finder.find_home(None)
+    if home_folder is not None:
+        print(f"home: {home_folder.path} (found through {home_folder.source.value})")
+        return
+
+    print("home: none found; the setup skill creates 1 of these:")
+    print(f"{HomePlace.PROJECT.value}: {finder.locate(HomePlace.PROJECT)} (this folder only)")
+    print(f"{HomePlace.USER_ACCOUNT.value}: {finder.locate(HomePlace.USER_ACCOUNT)} (works from any folder)")
 
 
 def merge(arguments: argparse.Namespace) -> None:
@@ -166,7 +182,7 @@ class _Run:
 
 
 def _open_run(arguments: argparse.Namespace) -> _Run:
-    home = _find_home(arguments)
+    home = arguments.home_path
     settings = read_settings(home / "config.yml")
     policy_path = home / "policy.md"
     if not policy_path.exists():
@@ -249,7 +265,7 @@ def _require_sound_answers(run: _Run, stage: str) -> None:
 
 
 def approve(arguments: argparse.Namespace) -> None:
-    home = _find_home(arguments)
+    home = arguments.home_path
     raw_proposal = json.loads(Path(arguments.proposal).read_text(encoding="utf-8"))
 
     chosen_category_keys_by_merchant_key_map = dict(choice.rsplit("=", 1) for choice in arguments.set)
@@ -283,7 +299,7 @@ def approve(arguments: argparse.Namespace) -> None:
 
 
 def corrections(arguments: argparse.Namespace) -> None:
-    settings = read_settings(_find_home(arguments) / "config.yml")
+    settings = read_settings(arguments.home_path / "config.yml")
     snapshot = read_snapshot(Path(arguments.snapshot))
 
     report = find_correction_chains(snapshot, settings.corrections)
@@ -302,20 +318,36 @@ def _read_choice(text: str) -> str:
     return text
 
 
-def _find_home(arguments: argparse.Namespace) -> Path:
-    return Path(arguments.home or os.environ.get(_HOME_VARIABLE) or "local")
+def _require_home(option: str | None) -> Path:
+    finder = HomeFinder.for_this_process()
+    home_folder = finder.find_home(option)
+    if home_folder is None:
+        raise MissingHomeError(
+            f"no home folder with config.yml found; the setup skill creates it in {finder.locate(HomePlace.PROJECT)} "
+            f"or {finder.locate(HomePlace.USER_ACCOUNT)}"
+        )
+
+    return home_folder.path
+
+
+def _add_home_argument(step_parser: argparse.ArgumentParser, help_text: str) -> None:
+    step_parser.add_argument("--home", help=f"folder of {help_text}; else ${HOME_VARIABLE}, else ./zenmoney-cleaner, else the folder of your user account")
+    step_parser.set_defaults(needs_home=True)
 
 
 def _add_run_arguments(step_parser: argparse.ArgumentParser, command: Callable[[argparse.Namespace], None]) -> None:
     step_parser.add_argument("--snapshot", required=True)
     step_parser.add_argument("--out", required=True, help="run folder of the scope, the stages and the proposal files")
-    step_parser.add_argument("--home", help=f"folder of config.yml, policy.md, verified.yml, places.yml; else ${_HOME_VARIABLE}, else ./local")
+    _add_home_argument(step_parser, "config.yml, policy.md, verified.yml, places.yml")
     step_parser.set_defaults(command=command)
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="zenmoney_cleaner")
     subparsers = parser.add_subparsers(required=True)
+
+    home_parser = subparsers.add_parser("home", help="print the home folder found, or the 2 places the setup can create it")
+    home_parser.set_defaults(command=home, needs_home=False)
 
     merge_parser = subparsers.add_parser("merge", help="join fetched pages into 1 snapshot")
     merge_parser.add_argument(
@@ -324,7 +356,7 @@ def _build_parser() -> argparse.ArgumentParser:
     merge_parser.add_argument("--categories", required=True, help="saved list_categories response")
     merge_parser.add_argument("--accounts", required=True, help="saved list_accounts response")
     merge_parser.add_argument("--out", required=True, help="snapshot file to write")
-    merge_parser.set_defaults(command=merge)
+    merge_parser.set_defaults(command=merge, needs_home=False)
 
     prepare_parser = subparsers.add_parser("prepare", help="save the scope, decide by rules and write the categorize jobs for the rest")
     prepare_parser.add_argument("--mode", choices=[mode.value for mode in CategorizingMode], required=True,
@@ -350,7 +382,7 @@ def _build_parser() -> argparse.ArgumentParser:
     corrections_parser = subparsers.add_parser("corrections", help="find closed and open chains of balance corrections")
     corrections_parser.add_argument("--snapshot", required=True)
     corrections_parser.add_argument("--out", required=True, help="folder for proposal.json and proposal.md")
-    corrections_parser.add_argument("--home", help=f"folder of config.yml; else ${_HOME_VARIABLE}, else ./local")
+    _add_home_argument(corrections_parser, "config.yml")
     corrections_parser.set_defaults(command=corrections)
 
     approve_parser = subparsers.add_parser("approve", help="turn the approved part of a proposal into connector batches and record it as verified")
@@ -365,7 +397,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--set", action="append", default=[], type=_read_choice, help="MERCHANT KEY=category key the user chose for that merchant; repeatable"
     )
     approve_parser.add_argument("--out", required=True, help="batches file to write")
-    approve_parser.add_argument("--home", help=f"folder of verified.yml; else ${_HOME_VARIABLE}, else ./local")
+    _add_home_argument(approve_parser, "verified.yml")
     approve_parser.set_defaults(command=approve)
 
     return parser

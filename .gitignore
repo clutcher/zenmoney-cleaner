@@ -1,5 +1,5 @@
-# personal data and rules of the user
-local/
+# personal data and rules of the user, in project mode
+zenmoney-cleaner/
 
 __pycache__/
 *.pyc
