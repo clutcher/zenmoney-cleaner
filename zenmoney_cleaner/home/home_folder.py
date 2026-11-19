@@ -17,7 +17,7 @@ class MissingHomeError(Exception):
 class HomeSource(Enum):
     OPTION = "the option --home"
     VARIABLE = f"${HOME_VARIABLE}"
-    PROJECT = "this folder"
+    PROJECT = "the project folder"
     USER_ACCOUNT = "your user account"
 
 
@@ -49,10 +49,14 @@ class HomeFinder:
         if self._environment.get(HOME_VARIABLE):
             return HomeFolder(Path(self._environment[HOME_VARIABLE]).resolve(), HomeSource.VARIABLE)
 
-        for place, source in ((HomePlace.PROJECT, HomeSource.PROJECT), (HomePlace.USER_ACCOUNT, HomeSource.USER_ACCOUNT)):
-            path = self.locate(place)
-            if (path / _SETTINGS_FILE_NAME).exists():
-                return HomeFolder(path, source)
+        current_folder = self._current_folder.resolve()
+        for folder in (current_folder, *current_folder.parents):
+            if (folder / _FOLDER_NAME / _SETTINGS_FILE_NAME).exists():
+                return HomeFolder(folder / _FOLDER_NAME, HomeSource.PROJECT)
+
+        user_account_path = self.locate(HomePlace.USER_ACCOUNT)
+        if (user_account_path / _SETTINGS_FILE_NAME).exists():
+            return HomeFolder(user_account_path, HomeSource.USER_ACCOUNT)
         return None
 
     def locate(self, place: HomePlace) -> Path:

@@ -22,7 +22,7 @@ def test_should_find_the_project_folder_before_the_user_account_when_both_hold_a
     main(["home"])
 
     # then
-    assert capsys.readouterr().out == f"home: {project_home} (found through this folder)\n"
+    assert capsys.readouterr().out == f"home: {project_home} (found through the project folder)\n"
 
 
 def test_should_find_the_user_account_folder_when_the_project_has_none(linux_user: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -70,3 +70,19 @@ def test_should_stop_a_command_with_an_error_when_no_home_is_found(linux_user: P
     # then
     assert exit_code == 1
     assert not (linux_user / "batches.json").exists()
+
+
+def test_should_find_the_project_folder_from_a_folder_inside_it_when_the_command_runs_there(
+    linux_user: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # given
+    project_home = _create_home(linux_user / "project" / "zenmoney-cleaner")
+    run_folder = project_home / "data" / "2025-11-19-recheck"
+    run_folder.mkdir(parents=True)
+    monkeypatch.chdir(run_folder)
+
+    # when
+    main(["home"])
+
+    # then
+    assert capsys.readouterr().out == f"home: {project_home} (found through the project folder)\n"
