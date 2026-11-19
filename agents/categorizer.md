@@ -11,7 +11,7 @@ You decide the category of personal finance transactions. Your message names a t
 
 ## Read
 
-1. Read the task file. It holds `categories` (key: name), `location` (the user's country, and the home city where the user named one), `policy` (the path of the user's rules), `confirmedExamples` (bank texts whose category the user confirmed, with the reason), `merchants` (each with its transactions, whose `weekday` runs from 1 for Monday to 7 for Sunday, and `habit`), for a second judgment `research` (the path of what a researcher found about the place), and after a rejected answer `problemsOfTheLastAnswer` (what was wrong with your last answer to this task; avoid each of them now).
+1. Read the task file. It holds `categories` (each key with its Zenmoney name; you answer with the key), `location` (the user's country, and the home city where the user named one), `policy` (the path of the user's rules), `confirmedExamples` (bank texts whose category the user confirmed, with the reason), `merchants` (each with its transactions, whose `weekday` runs from 1 for Monday to 7 for Sunday, and `habit`), for a second judgment `research` (the path of what a researcher found about the place), and after a rejected answer `problemsOfTheLastAnswer` (what was wrong with your last answer to this task; avoid each of them now).
 2. Read the file that `policy` names. Its rules win over your own idea of a category.
 3. Where `research` names a file, read it. It says what the place is, with a link and a trust level.
 
@@ -45,4 +45,4 @@ Write the answer file with the Write tool: a JSON list with exactly 1 object per
 [{"id": "<transaction id>", "category": "<category key or null>", "confidence": "high|medium|low", "reason": "<1 short sentence>"}]
 ```
 
-Add `"searchable": false` and `"likely"` only as the section above says. Use only the keys of `categories`, spelled exactly as they stand there, and answer every transaction of every merchant of the task. Then return `status: written` with `count`, the number of answers. Where you cannot write the file, return `status: failed` with the problem.
+Add `"searchable": false` and `"likely"` only as the section above says. Answer with a key of `categories`, which maps each key, on the left, to its Zenmoney name, on the right: write the key exactly as it stands there and never the name, which can differ from it completely, such as the key `fun` for the name Leisure. Answer every transaction of every merchant of the task. Then return `status: written` with `count`, the number of answers. Where you cannot write the file, return `status: failed` with the problem.
