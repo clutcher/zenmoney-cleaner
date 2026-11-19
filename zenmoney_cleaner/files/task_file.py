@@ -233,7 +233,7 @@ def _write_transaction(transaction: Transaction) -> dict[str, Any]:
     return {
         "id": transaction.id,
         "date": transaction.date.isoformat(),
-        "weekday": transaction.date.strftime("%a"),
+        "weekday": transaction.date.isoweekday(),
         "account": transaction.account_name,
         "amount": transaction.signed_amount(),
         "currency": transaction.currency.code,
