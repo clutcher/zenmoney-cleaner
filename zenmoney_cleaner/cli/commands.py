@@ -51,6 +51,7 @@ from zenmoney_cleaner.home.home_folder import HOME_VARIABLE, HomeFinder, HomePla
 from zenmoney_cleaner.payee.merchant_key import MerchantKeyMaker
 from zenmoney_cleaner.settings.category_keys import make_category_names_by_key_map
 from zenmoney_cleaner.settings.settings import Confidence, Location, Settings
+from zenmoney_cleaner.snapshot.snapshot import Snapshot
 from zenmoney_cleaner.snapshot.transaction import TransactionKind
 from zenmoney_cleaner.snapshot.snapshot_merger import IncompletePagesError, UnknownAccountError, merge_snapshot, read_categories
 
@@ -202,7 +203,7 @@ def _open_run(arguments: argparse.Namespace) -> _Run:
     if not policy_path.exists():
         raise SettingsError(f"{policy_path} is missing; copy policy.md of config.example and write your rules into it")
 
-    snapshot = read_snapshot(Path(arguments.snapshot))
+    snapshot = _read_snapshot(Path(arguments.snapshot), settings)
     catalog = CategoryCatalog.resolve(settings.category_names_by_key_map, snapshot)
     verified_transactions = read_verified_transactions(home / "verified.yml")
     scope = read_scope(Path(arguments.out))
@@ -215,6 +216,18 @@ def _open_run(arguments: argparse.Namespace) -> _Run:
     )
     context = TaskContext(settings, catalog.describe_categories(), scope.mode.value, policy_path.resolve(), verified_transactions.list_examples())
     return _Run(home, Path(arguments.out), scope, selection, catalog, context)
+
+
+def _read_snapshot(path: Path, settings: Settings) -> Snapshot:
+    snapshot = read_snapshot(path)
+    adjustment_category_name = settings.corrections.adjustment_category_name
+    if adjustment_category_name is None:
+        return snapshot
+
+    adjustment_category = snapshot.find_category(adjustment_category_name)
+    if adjustment_category is None:
+        raise SettingsError(f"config.yml, corrections.adjustment_category: Zenmoney has no category {adjustment_category_name!r}")
+    return snapshot.with_balance_adjustment_category(adjustment_category.id)
 
 
 def _read_scope_arguments(arguments: argparse.Namespace) -> CategorizingScope:
@@ -314,7 +327,7 @@ def approve(arguments: argparse.Namespace) -> None:
 
 def corrections(arguments: argparse.Namespace) -> None:
     settings = read_settings(arguments.home_path / "config.yml")
-    snapshot = read_snapshot(Path(arguments.snapshot))
+    snapshot = _read_snapshot(Path(arguments.snapshot), settings)
 
     report = find_correction_chains(snapshot, settings.corrections)
 

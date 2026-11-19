@@ -108,12 +108,12 @@ def write_home(directory: Path, config_text: str = CONFIG_TEXT) -> Path:
     return home
 
 
-def write_fetch(directory: Path, pages: list[dict[str, Any]]) -> Path:
+def write_fetch(directory: Path, pages: list[dict[str, Any]], categories_response: dict[str, Any] = CATEGORIES_RESPONSE) -> Path:
     fetch = directory / "fetch"
     (fetch / "pages").mkdir(parents=True)
     for index, page in enumerate(pages, start=1):
         _write_json(page, fetch / "pages" / f"page-{index:03}.json")
-    _write_json(CATEGORIES_RESPONSE, fetch / "categories.json")
+    _write_json(categories_response, fetch / "categories.json")
     _write_json(ACCOUNTS_RESPONSE, fetch / "accounts.json")
     return fetch
 

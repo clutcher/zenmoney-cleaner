@@ -1,17 +1,36 @@
 from pathlib import Path
 from typing import Any
 
-from tests.support.zenmoney_responses import build_correction, build_expense, build_page, read_json, write_fetch, write_home
+import pytest
+
+from tests.support.zenmoney_responses import (
+    CATEGORIES_RESPONSE,
+    CONFIG_TEXT,
+    GROCERIES_ID,
+    build_correction,
+    build_expense,
+    build_page,
+    read_json,
+    write_fetch,
+    write_home,
+)
 from zenmoney_cleaner.cli.commands import main
+
+_RESPONSE_WITHOUT_ADJUSTMENT_ID = CATEGORIES_RESPONSE | {"balanceAdjustmentCategoryId": None}
+
+
+def _run_corrections(
+    tmp_path: Path, transactions: list[dict[str, Any]], categories_response: dict[str, Any] = CATEGORIES_RESPONSE, config_text: str = CONFIG_TEXT
+) -> int:
+    fetch = write_fetch(tmp_path, [build_page(transactions)], categories_response)
+    snapshot_path = tmp_path / "snapshot.json"
+    main(["merge", "--pages", str(fetch / "pages"), "--categories", str(fetch / "categories.json"), "--accounts", str(fetch / "accounts.json"), "--out", str(snapshot_path)])
+    return main(["corrections", "--snapshot", str(snapshot_path), "--out", str(tmp_path / "corrections"), "--home", str(write_home(tmp_path, config_text))])
 
 
 def _find_corrections(tmp_path: Path, transactions: list[dict[str, Any]]) -> dict[str, Any]:
-    fetch = write_fetch(tmp_path, [build_page(transactions)])
-    snapshot_path = tmp_path / "snapshot.json"
-    out = tmp_path / "corrections"
-    main(["merge", "--pages", str(fetch / "pages"), "--categories", str(fetch / "categories.json"), "--accounts", str(fetch / "accounts.json"), "--out", str(snapshot_path)])
-    main(["corrections", "--snapshot", str(snapshot_path), "--out", str(out), "--home", str(write_home(tmp_path))])
-    return read_json(out / "proposal.json")
+    _run_corrections(tmp_path, transactions)
+    return read_json(tmp_path / "corrections" / "proposal.json")
 
 
 def test_should_propose_deleting_a_run_that_adds_up_to_0_when_an_older_correction_stays_open(tmp_path: Path) -> None:
@@ -67,3 +86,34 @@ def test_should_report_a_real_difference_when_the_open_correction_is_old(tmp_pat
     assert proposal["changes"] == []
     assert proposal["openChains"][0]["pending"] is False
     assert proposal["openChains"][0]["residual"] == -31.8
+
+
+def test_should_take_the_category_named_in_the_config_when_zenmoney_reports_no_adjustment_category(tmp_path: Path) -> None:
+    # given
+    config_text = CONFIG_TEXT + "corrections: {adjustment_category: Balance adjustment}\n"
+    synced_pair = [build_correction("c-1", "2025-08-02", -100), build_correction("c-2", "2025-08-03", 100)]
+
+    # when
+    exit_code = _run_corrections(tmp_path, synced_pair, _RESPONSE_WITHOUT_ADJUSTMENT_ID, config_text)
+
+    # then
+    proposal = read_json(tmp_path / "corrections" / "proposal.json")
+    assert exit_code == 0
+    assert sorted(change["deleteId"] for change in proposal["changes"]) == ["c-1", "c-2"]
+
+
+def test_should_stop_and_name_the_likely_category_when_neither_zenmoney_nor_the_config_names_one(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # given
+    synced_pair = [build_correction("c-1", "2025-08-02", -100), build_correction("c-2", "2025-08-03", 100)]
+    purchase = build_expense("p-1", "2025-08-02", 3.15, "GREENBASKET", category_id=GROCERIES_ID)
+
+    # when
+    exit_code = _run_corrections(tmp_path, [*synced_pair, purchase], _RESPONSE_WITHOUT_ADJUSTMENT_ID)
+
+    # then
+    error_text = capsys.readouterr().err
+    assert exit_code == 1
+    assert "Balance adjustment (2 of 2)" in error_text
+    assert "Groceries" not in error_text

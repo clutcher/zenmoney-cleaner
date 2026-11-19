@@ -26,16 +26,14 @@ def merge_snapshot(pages_by_query: list[list[RawObject]], categories_response: R
     merchant_names_by_id_map = _collect_merchant_names(pages)
     raw_transactions_by_id_map = {raw["id"]: raw for page in pages for raw in page["data"]}
 
-    transactions = tuple(
-        _read_transaction(raw, categories, accounts, merchant_names_by_id_map, balance_adjustment_category_id)
-        for raw in raw_transactions_by_id_map.values()
-    )
-    return Snapshot(
+    transactions = tuple(_read_transaction(raw, categories, accounts, merchant_names_by_id_map) for raw in raw_transactions_by_id_map.values())
+    snapshot = Snapshot(
         transactions=tuple(sorted(transactions, key=lambda transaction: (transaction.date, transaction.id))),
         categories=categories,
         accounts=accounts,
-        balance_adjustment_category_id=balance_adjustment_category_id,
+        balance_adjustment_category_id=None,
     )
+    return snapshot.with_balance_adjustment_category(balance_adjustment_category_id)
 
 
 def _check_pages_complete(pages: list[RawObject]) -> None:
@@ -77,7 +75,6 @@ def _read_transaction(
     categories: tuple[Category, ...],
     accounts: tuple[Account, ...],
     merchant_names_by_id_map: dict[str, str],
-    balance_adjustment_category_id: str | None,
 ) -> Transaction:
     kind = _read_kind(raw)
     side = raw["expense"] if kind != TransactionKind.INCOME else raw["income"]
@@ -100,7 +97,7 @@ def _read_transaction(
         category_name=category_name,
         payee=raw.get("originalPayee") or merchant_name,
         comment=raw.get("comment") or "",
-        is_balance_adjustment=category_id is not None and category_id == balance_adjustment_category_id,
+        is_balance_adjustment=False,
         is_reviewed=raw.get("isReviewed", True) is not False,
         is_synced=bool(raw.get("source")),
     )

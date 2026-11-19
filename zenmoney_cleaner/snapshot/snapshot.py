@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from zenmoney_cleaner.snapshot.transaction import Transaction
 
@@ -31,6 +31,13 @@ class Snapshot:
     categories: tuple[Category, ...]
     accounts: tuple[Account, ...]
     balance_adjustment_category_id: str | None
+
+    def with_balance_adjustment_category(self, category_id: str | None) -> "Snapshot":
+        transactions = tuple(
+            replace(transaction, is_balance_adjustment=category_id is not None and transaction.category_id == category_id)
+            for transaction in self.transactions
+        )
+        return replace(self, transactions=transactions, balance_adjustment_category_id=category_id)
 
     def find_category(self, name: str) -> Category | None:
         category_by_full_name = next((category for category in self.categories if category.full_name == name), None)

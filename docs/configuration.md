@@ -28,7 +28,7 @@ The home folder holds your settings and history. Every command takes the first o
 
 `rules` holds only strict cases, which code decides without an agent; the first rule that matches decides. A rule matches on `payee` (exact bank texts after `strip`, case ignored, 1 text or a list), `comment` (fragments, case ignored, 1 or a list), `account` (an account name) and `type` (`expense` or `income`), and every key it names must hold. Its action is `categorize` with `category: <key>` (the default), `delete`, or `transfer` with `to_account: <account name>`, and `reason` says why in the proposal. Anything that needs judgment goes into `policy.md` instead.
 
-`corrections.match_window_days` is how many days before a balance correction a pending purchase may be dated, and `corrections.max_match_size` the most transactions that 1 correction is matched against.
+`corrections.match_window_days` is how many days before a balance correction a pending purchase may be dated, and `corrections.max_match_size` the most transactions that 1 correction is matched against. `corrections.adjustment_category` is optional: the name of your balance-adjustment category, used instead of the id that Zenmoney reports; the corrections skill writes it when Zenmoney reports none.
 
 ## policy.md
 
@@ -44,4 +44,4 @@ Each merchant key the researcher looked up, with `place`, `source`, `trust` and 
 
 ## The balance-adjustment category
 
-Never rename the category that Zenmoney uses for balance corrections; its name depends on the language of your Zenmoney. Zenmoney finds it by its name, and a renamed category loses its role. The plugin reads it only by the id that Zenmoney reports, and never changes it.
+Never rename the category that Zenmoney uses for balance corrections, whose name depends on the language of your Zenmoney, and never create a second category of the same name: the connector then reports its id `balanceAdjustmentCategoryId` as null, because it finds the category missing or ambiguous. The plugin reads that id, or the name in `corrections.adjustment_category` where you set one, and never changes the category itself.

@@ -9,9 +9,11 @@ You run these steps in order and decide nothing the steps do not name. The code 
 
 `<cli>` stands for `PYTHONPATH="${CLAUDE_PLUGIN_ROOT}" python3 -m zenmoney_cleaner`, `<out>` for the folder `<run>/corrections`. `<home>` is the folder that `<cli> home` prints; every command finds it the same way by itself and prints it. Where it finds none, run the setup skill of zenmoney-cleaner first.
 
-Never rename, edit or delete the balance-adjustment category itself, and never move a transaction into or out of it: Zenmoney finds that category by its name, so a renamed category loses its role, and the code reads it only by the id `balanceAdjustmentCategoryId` of `list_categories`.
+Never rename, edit or delete the balance-adjustment category itself, and never move a transaction into or out of it: after a rename or a second category of the same name, `list_categories` reports its id `balanceAdjustmentCategoryId` as null. The code reads that id, or the category that `corrections.adjustment_category` of `config.yml` names.
 
 ## 1. Snapshot
+
+Where `config.yml` holds no `corrections.adjustment_category`, call `list_categories`. Where its `balanceAdjustmentCategoryId` is null, list the likely categories: names that mean correction or adjustment in any language, such as Корректировка, and the category that `corrections` names in its error, whose transactions are mostly synced with no payee. Ask the user which one it is, and write its name as `corrections.adjustment_category` into `config.yml`.
 
 Run the fetch skill with its correction history query, for the last 3 months, unless a snapshot of today holds `correction-pages/` and no change was made in Zenmoney since. The 3 months give the real purchases that an open correction is matched against.
 

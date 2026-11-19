@@ -74,6 +74,7 @@ class Rule:
 class CorrectionSettings:
     match_window_days: int
     max_match_size: int
+    adjustment_category_name: str | None = None
 
 
 @dataclass(frozen=True)

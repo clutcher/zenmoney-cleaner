@@ -15,7 +15,7 @@ The other skills never call Zenmoney for data themselves; they read the snapshot
    - A page too large for the reply arrives as a saved file whose path the tool result names; copy that file with `cp`, so no character of it changes.
    - A page that arrives inline is written with the Write tool, exactly as returned.
 4. Save the replies of `list_categories` and `list_accounts` as `categories.json` and `accounts.json` in the run folder, the same way.
-5. For the corrections skill, also page `list_transactions` with `categoryIds: [<balanceAdjustmentCategoryId of categories.json>]`, `from: 2000-01-01`, `to: <today>` and `limit: 200` into `correction-pages/` the same way, because a correction chain can start years before the date range.
+5. For the corrections skill, also page `list_transactions` with `categoryIds: [<the id of the category that corrections.adjustment_category of config.yml names, else balanceAdjustmentCategoryId of categories.json>]`, `from: 2000-01-01`, `to: <today>` and `limit: 200` into `correction-pages/` the same way, because a correction chain can start years before the date range.
 6. Run the merge, with a second `--pages <run>/correction-pages` where step 5 ran:
 
    ```

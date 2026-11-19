@@ -151,6 +151,7 @@ def _read_corrections(raw_corrections: dict[str, Any]) -> CorrectionSettings:
     return CorrectionSettings(
         match_window_days=int(raw_corrections.get("match_window_days", 6)),
         max_match_size=int(raw_corrections.get("max_match_size", 5)),
+        adjustment_category_name=str(raw_corrections["adjustment_category"]) if raw_corrections.get("adjustment_category") else None,
     )
 
 

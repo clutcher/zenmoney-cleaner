@@ -32,7 +32,10 @@ class Transaction:
         return self.kind != TransactionKind.TRANSFER and not self.is_balance_adjustment
 
     def is_auto_correction(self) -> bool:
-        return self.is_balance_adjustment and self.is_synced and not self.payee
+        return self.is_balance_adjustment and self.is_synced_without_payee()
+
+    def is_synced_without_payee(self) -> bool:
+        return self.is_synced and not self.payee
 
     def signed_amount(self) -> float:
         return -self.amount if self.kind == TransactionKind.EXPENSE else self.amount

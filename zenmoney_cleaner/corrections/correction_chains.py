@@ -11,6 +11,7 @@ _CENTS_PER_UNIT = 100
 _PENDING_DAYS = 7
 _MATCH_LIMIT = 5
 _ROUNDING_CENTS = 1
+_CANDIDATE_LIMIT = 5
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,9 @@ class MissingAdjustmentCategoryError(Exception):
 def find_correction_chains(snapshot: Snapshot, settings: CorrectionSettings) -> CorrectionReport:
     if snapshot.balance_adjustment_category_id is None:
         raise MissingAdjustmentCategoryError(
-            "Zenmoney reports no balance-adjustment category; it finds that category by its name, so check that it was not renamed"
+            "Zenmoney reports no balance-adjustment category, which happens when it is missing or 2 categories share its name; "
+            "name it as corrections.adjustment_category in config.yml. "
+            f"Categories whose transactions are mostly synced with no payee: {_describe_adjustment_candidates(snapshot) or 'none'}"
         )
 
     corrections_by_account_id_map: dict[str, list[Transaction]] = defaultdict(list)
@@ -72,6 +75,21 @@ def find_correction_chains(snapshot: Snapshot, settings: CorrectionSettings) -> 
             open_chains.append(_describe_open_chain(account_name, open_corrections, account_transactions, settings, newest_day))
 
     return CorrectionReport(tuple(closed_chains), tuple(open_chains))
+
+
+def _describe_adjustment_candidates(snapshot: Snapshot) -> str:
+    transactions_by_category_name_map: dict[str, list[Transaction]] = defaultdict(list)
+    for transaction in snapshot.transactions:
+        if transaction.category_name is not None:
+            transactions_by_category_name_map[transaction.category_name].append(transaction)
+
+    candidate_counts = []
+    for category_name, transactions in transactions_by_category_name_map.items():
+        correction_like_count = sum(1 for transaction in transactions if transaction.is_synced_without_payee())
+        if correction_like_count * 2 > len(transactions):
+            candidate_counts.append((category_name, correction_like_count, len(transactions)))
+    candidate_counts.sort(key=lambda candidate: -candidate[1])
+    return ", ".join(f"{name} ({count} of {total})" for name, count, total in candidate_counts[:_CANDIDATE_LIMIT])
 
 
 def _split_into_chains(corrections: list[Transaction]) -> tuple[list[tuple[Transaction, ...]], tuple[Transaction, ...]]:
