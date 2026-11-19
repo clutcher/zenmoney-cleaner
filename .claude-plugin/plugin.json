@@ -1,0 +1,16 @@
+{
+  "name": "zenmoney-cleaner",
+  "version": "0.1.0",
+  "description": "Clean up Zenmoney data: categorize empty, new or chosen transactions with agents that follow your rules in words and research unknown places, and remove stacked balance corrections. Every change is proposed first and applied only after approval.",
+  "author": {
+    "name": "Igor Zarvanskyi"
+  },
+  "license": "MIT",
+  "keywords": [
+    "zenmoney",
+    "personal-finance",
+    "categorization",
+    "bank",
+    "budget"
+  ]
+}

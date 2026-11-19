@@ -1,0 +1,41 @@
+# Copy this folder to local/ (or to the folder named by ZENMONEY_CLEANER_HOME) and edit it.
+
+location:                       # where most spending happens; the researcher searches here when a bank text names no city
+  city: Lisbon
+  country: Portugal
+  country_code: PT
+
+categories:                     # short key that the rules and the agents use → the category name exactly as Zenmoney shows it
+  groceries: Groceries
+  cafe: Cafes & Restaurants
+  transport: Transport
+  travel: Travel
+  home: Home
+  health: Health & Beauty
+  clothing: Clothing
+  leisure: Leisure
+  bank_fees: Bank Fees
+
+payee:
+  strip:                        # regular expressions removed from the bank text, so the payments of 1 merchant group together
+    - '\s+PT$'                  # country tail that some banks add
+    - '\s{2,}[A-Z .]+$'         # city after a run of spaces
+    - '^(MP\*\*|SUMUP\s*\*|SQ \*)'   # card terminal providers in front of the real name
+    - '\s+\d{2,}$'              # store numbers
+
+rules:                          # strict cases only, decided without an agent; the first rule that matches decides
+  # when: payee (exact bank texts after strip, case ignored), comment (fragments, case ignored), account, type (expense|income)
+  # action: categorize (the default, with category: <key>), delete, or transfer with to_account: <account name>
+  - name: card-fee
+    when: {comment: card maintenance fee, type: expense}
+    category: bank_fees
+    reason: monthly card fee
+  - name: own-savings
+    when: {payee: SAVINGS POT, account: Main, type: expense}
+    action: transfer
+    to_account: Savings
+    reason: moves into the savings pot are transfers
+
+corrections:
+  match_window_days: 6          # how many days before a correction a pending purchase may be dated
+  max_match_size: 5             # the most transactions that 1 correction is matched against

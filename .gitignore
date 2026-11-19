@@ -1,0 +1,11 @@
+# personal data and rules of the user
+local/
+
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+
+# personal Claude Code settings
+.claude/settings.local.json

@@ -1,0 +1,11 @@
+{
+  "name": "zenmoney-cleaner",
+  "owner": {"name": "zenmoney-cleaner"},
+  "plugins": [
+    {
+      "name": "zenmoney-cleaner",
+      "source": "./",
+      "description": "Clean up Zenmoney data with Claude Code through the Zenmoney connector."
+    }
+  ]
+}

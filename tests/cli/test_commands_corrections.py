@@ -1,0 +1,69 @@
+from pathlib import Path
+from typing import Any
+
+from tests.support.zenmoney_responses import build_correction, build_expense, build_page, read_json, write_fetch, write_home
+from zenmoney_cleaner.cli.commands import main
+
+
+def _find_corrections(tmp_path: Path, transactions: list[dict[str, Any]]) -> dict[str, Any]:
+    fetch = write_fetch(tmp_path, [build_page(transactions)])
+    snapshot_path = tmp_path / "snapshot.json"
+    out = tmp_path / "corrections"
+    main(["merge", "--pages", str(fetch / "pages"), "--categories", str(fetch / "categories.json"), "--accounts", str(fetch / "accounts.json"), "--out", str(snapshot_path)])
+    main(["corrections", "--snapshot", str(snapshot_path), "--out", str(out), "--home", str(write_home(tmp_path))])
+    return read_json(out / "proposal.json")
+
+
+def test_should_propose_deleting_a_run_that_adds_up_to_0_when_an_older_correction_stays_open(tmp_path: Path) -> None:
+    # given
+    old_open_correction = build_correction("c-old", "2025-02-28", -187.40)
+    later_pair = [build_correction("c-1", "2025-08-31", -46.20), build_correction("c-2", "2025-09-03", 46.21)]
+
+    # when
+    proposal = _find_corrections(tmp_path, [old_open_correction, *later_pair])
+
+    # then
+    assert sorted(change["deleteId"] for change in proposal["changes"]) == ["c-1", "c-2"]
+    assert [correction["id"] for correction in proposal["openChains"][0]["corrections"]] == ["c-old"]
+
+
+def test_should_leave_an_entry_alone_when_the_user_typed_it_into_the_adjustment_category(tmp_path: Path) -> None:
+    # given
+    typed_entry = build_correction("c-typed", "2025-08-01", -100, source=None)
+    synced_pair = [build_correction("c-1", "2025-08-02", -100), build_correction("c-2", "2025-08-03", 100)]
+
+    # when
+    proposal = _find_corrections(tmp_path, [typed_entry, *synced_pair])
+
+    # then
+    assert sorted(change["deleteId"] for change in proposal["changes"]) == ["c-1", "c-2"]
+    assert proposal["openChains"] == []
+
+
+def test_should_list_the_purchases_that_add_up_to_an_open_correction_when_they_fall_in_the_window(tmp_path: Path) -> None:
+    # given
+    purchases = [build_expense("p-1", "2025-11-16", 3.15, "GREENBASKET"), build_expense("p-2", "2025-11-17", 4.60, "QMEXPELM33")]
+    open_correction = build_correction("c-1", "2025-11-19", -7.75)
+
+    # when
+    proposal = _find_corrections(tmp_path, [*purchases, open_correction])
+
+    # then
+    open_chain = proposal["openChains"][0]
+    matched_ids = [[transaction["id"] for transaction in transaction_set] for transaction_set in open_chain["matches"][0]["transactionSets"]]
+    assert matched_ids == [["p-1", "p-2"]]
+    assert open_chain["pending"] is True
+
+
+def test_should_report_a_real_difference_when_the_open_correction_is_old(tmp_path: Path) -> None:
+    # given
+    old_open_correction = build_correction("c-1", "2025-03-15", -31.80)
+    newest_purchase = build_expense("p-1", "2025-11-19", 2.5, "CAFE ORBIT")
+
+    # when
+    proposal = _find_corrections(tmp_path, [old_open_correction, newest_purchase])
+
+    # then
+    assert proposal["changes"] == []
+    assert proposal["openChains"][0]["pending"] is False
+    assert proposal["openChains"][0]["residual"] == -31.8
