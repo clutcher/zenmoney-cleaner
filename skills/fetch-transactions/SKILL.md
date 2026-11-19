@@ -1,5 +1,5 @@
 ---
-name: fetch
+name: fetch-transactions
 description: Download Zenmoney transactions for a date range into a local snapshot that the other zenmoney-cleaner skills read. Use before categorize or corrections, or when the user asks to fetch, download or refresh their Zenmoney data.
 ---
 

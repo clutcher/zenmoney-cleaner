@@ -15,7 +15,7 @@ Never rename, edit or delete the balance-adjustment category itself, and never m
 
 Where `config.yml` holds no `corrections.adjustment_category`, call `list_categories`. Where its `balanceAdjustmentCategoryId` is null, list the likely categories: names that mean correction or adjustment in any language, such as Корректировка, and the category that `corrections` names in its error, whose transactions are mostly synced with no payee. Ask the user which one it is, and write its name as `corrections.adjustment_category` into `config.yml`.
 
-Run the fetch skill with its correction history query, for the last 3 months, unless a snapshot of today holds `correction-pages/` and no change was made in Zenmoney since. The 3 months give the real purchases that an open correction is matched against.
+Run the fetch-transactions skill with its correction history query, for the last 3 months, unless a snapshot of today holds `correction-pages/` and no change was made in Zenmoney since. The 3 months give the real purchases that an open correction is matched against.
 
 ## 2. Find the chains
 

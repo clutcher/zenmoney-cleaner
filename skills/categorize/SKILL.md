@@ -22,7 +22,7 @@ Turn the request into a scope:
 
 `--from` and `--to` take a day as `YYYY-MM-DD` or a month as `YYYY-MM`, which means its first or its last day, so "August to October" is `--from 2026-08 --to 2026-10`, and "the last 3 months" runs from the same day 3 months ago to today. `--account` takes an account name as Zenmoney shows it and repeats for several; `--type expense` means spendings, `--type income` incomes. Every mode takes these options too. Say the scope back to the user in 1 line before you go on.
 
-The snapshot must cover the scope: use the newest snapshot of the fetch skill when it does and no change was made in Zenmoney since, and else run the fetch skill for the scope's period with 3 months before it, because the months before show the categorizer the user's habits.
+The snapshot must cover the scope: use the newest snapshot of the fetch-transactions skill when it does and no change was made in Zenmoney since, and else run the fetch-transactions skill for the scope's period with 3 months before it, because the months before show the categorizer the user's habits.
 
 ## 2. Prepare
 
@@ -33,7 +33,7 @@ Run `<cli> prepare <args> --mode <mode>` with the options of the scope. It saves
 Each stage below is 1 command that writes the jobs of the next stage, and 1 Workflow call that runs them. Where a command prints 0 jobs, skip its Workflow call.
 
 ```
-Workflow({ name: "zenmoney-cleaner:zenmoney-cleaner-run-jobs", args: { jobs: "<out>/<stage>/jobs.workflow.js" } })
+Workflow({ name: "zenmoney-cleaner:run-jobs", args: { jobs: "<out>/<stage>/jobs.workflow.js" } })
 ```
 
 1. Run the Workflow for the stage `categorize`.

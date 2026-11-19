@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'zenmoney-cleaner-run-jobs',
+  name: 'run-jobs',
   description: 'zenmoney-cleaner: run the agent jobs of 1 stage that the code prepared, each job as its steps in order and the jobs side by side',
   whenToUse: 'Started by the categorize skill of zenmoney-cleaner with the path of a jobs.workflow.js file',
   phases: [{ title: 'Jobs', detail: 'one chain of agent steps per job; each step reads its task file and writes its answer file' }],
