@@ -6,7 +6,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
 
-from zenmoney_cleaner.applying.approval import ProposalFormatError, approve_proposal
+from zenmoney_cleaner.applying.approval import ProposalFormatError, ReviewAnswers, approve_proposal
 from zenmoney_cleaner.categorizing.agent_answers import AnswerError, judge_by_answers, list_unsearchable_transaction_ids
 from zenmoney_cleaner.categorizing.category_catalog import CategoryCatalog, UnknownCategoryError
 from zenmoney_cleaner.categorizing.categorizing_scope import CategorizingMode, CategorizingScope
@@ -351,14 +351,15 @@ def approve(arguments: argparse.Namespace) -> None:
         kept_undecided_merchant_keys = {
             item["merchantKey"] for item in raw_proposal.get("undecided", [])
         } - skipped_merchant_keys - set(chosen_category_keys_by_merchant_key_map)
-    approval = approve_proposal(
-        raw_proposal,
-        Confidence(arguments.min_confidence),
-        skipped_merchant_keys,
-        set(arguments.keep),
-        chosen_category_keys_by_merchant_key_map,
-        kept_undecided_merchant_keys,
+    answers = ReviewAnswers(
+        minimum_confidence=Confidence(arguments.min_confidence),
+        skipped_merchant_keys=frozenset(skipped_merchant_keys),
+        kept_merchant_keys=frozenset(arguments.keep),
+        chosen_category_keys_by_merchant_key_map=chosen_category_keys_by_merchant_key_map,
+        kept_undecided_merchant_keys=frozenset(kept_undecided_merchant_keys),
+        comments_by_merchant_key_map=dict(comment.split("=", 1) for comment in arguments.comment),
     )
+    approval = approve_proposal(raw_proposal, answers)
 
     raw_batches = {
         "upsertBatches": [list(batch) for batch in approval.upsert_batches],
@@ -489,6 +490,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     approve_parser.add_argument(
         "--set", action="append", default=[], type=_read_choice, help="MERCHANT KEY=category key the user chose for that merchant; repeatable"
+    )
+    approve_parser.add_argument(
+        "--comment", action="append", default=[], type=_read_choice,
+        help="MERCHANT KEY=text added to the comment of the approved, kept or set transactions of that merchant, after the comment they hold; repeatable",
     )
     approve_parser.add_argument("--out", required=True, help="batches file to write")
     _add_home_argument(approve_parser, "verified.yml")

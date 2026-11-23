@@ -170,7 +170,7 @@ def _build_categorize_task(merchant_groups: tuple[MerchantGroup, ...], context: 
         "location": vars(context.settings.location),
         "categories": context.category_full_names_by_key_map,
         "policy": str(context.policy_path),
-        "confirmedExamples": [f"{example.payee} → {example.category_name}: {example.reason}" for example in context.examples],
+        "confirmedExamples": [example.describe() for example in context.examples],
         "merchants": [_write_merchant_group(group) for group in merchant_groups],
     }
 

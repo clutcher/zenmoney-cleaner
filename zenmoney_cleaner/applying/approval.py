@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
 
@@ -6,6 +6,7 @@ from zenmoney_cleaner.settings.settings import Confidence
 
 _BATCH_SIZE = 200
 _NEW_MODE = "new-in-zenmoney"
+_COMMENT_SEPARATOR = " · "
 
 
 class ProposalFormatError(Exception):
@@ -22,6 +23,17 @@ class Confirmation:
     payee: str
     day: str
     amount: float
+    comment: str | None = None
+
+
+@dataclass(frozen=True)
+class ReviewAnswers:
+    minimum_confidence: Confidence
+    skipped_merchant_keys: frozenset[str] = frozenset()
+    kept_merchant_keys: frozenset[str] = frozenset()
+    chosen_category_keys_by_merchant_key_map: dict[str, str] = field(default_factory=dict)
+    kept_undecided_merchant_keys: frozenset[str | None] = frozenset()
+    comments_by_merchant_key_map: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -32,37 +44,30 @@ class Approval:
     checked_until: date | None = None
 
 
-def approve_proposal(
-    raw_proposal: dict[str, Any],
-    minimum_confidence: Confidence,
-    skipped_merchant_keys: set[str],
-    kept_merchant_keys: set[str],
-    chosen_category_keys_by_merchant_key_map: dict[str, str],
-    kept_undecided_merchant_keys: set[str | None],
-) -> Approval:
+def approve_proposal(raw_proposal: dict[str, Any], answers: ReviewAnswers) -> Approval:
     changes = _read_changes(raw_proposal)
     undecided = raw_proposal.get("undecided", [])
-    user_decided_merchant_keys = skipped_merchant_keys | kept_merchant_keys | set(chosen_category_keys_by_merchant_key_map)
+    user_decided_merchant_keys = answers.skipped_merchant_keys | answers.kept_merchant_keys | set(answers.chosen_category_keys_by_merchant_key_map)
     approved_changes = [
         change
         for change in changes
-        if Confidence(change["confidence"]).reaches(minimum_confidence) and change["merchantKey"] not in user_decided_merchant_keys
+        if Confidence(change["confidence"]).reaches(answers.minimum_confidence) and change["merchantKey"] not in user_decided_merchant_keys
     ]
     open_items = changes + undecided
     kept_items = [
         item
         for item in changes + undecided
         if item["transaction"]["currentCategoryId"]
-        and (item["merchantKey"] in kept_merchant_keys or (item in undecided and item["merchantKey"] in kept_undecided_merchant_keys))
+        and (item["merchantKey"] in answers.kept_merchant_keys or (item in undecided and item["merchantKey"] in answers.kept_undecided_merchant_keys))
     ]
-    chosen_items = [item for item in open_items if item["merchantKey"] in chosen_category_keys_by_merchant_key_map]
-    agreements = [agreement for agreement in raw_proposal.get("agreements", []) if agreement["merchantKey"] not in skipped_merchant_keys]
+    chosen_items = [item for item in open_items if item["merchantKey"] in answers.chosen_category_keys_by_merchant_key_map]
+    agreements = [agreement for agreement in raw_proposal.get("agreements", []) if agreement["merchantKey"] not in answers.skipped_merchant_keys]
 
     unchanged_confirmations = [_confirm_current_category(item, "user", "user kept the current category") for item in kept_items] + [
         _confirm_current_category(agreement, agreement["source"], agreement.get("reason", "")) for agreement in agreements
     ]
     chosen_confirmations = [
-        _confirm_chosen_category(item, _find_chosen_category(raw_proposal, chosen_category_keys_by_merchant_key_map[item["merchantKey"]]))
+        _confirm_chosen_category(item, _find_chosen_category(raw_proposal, answers.chosen_category_keys_by_merchant_key_map[item["merchantKey"]]))
         for item in chosen_items
     ]
     confirmations = (
@@ -76,6 +81,12 @@ def approve_proposal(
     if raw_proposal.get("mode") == _NEW_MODE:
         upserts += [{"id": confirmation.transaction_id, "isReviewed": True} for confirmation in unchanged_confirmations]
     delete_ids = [change["deleteId"] for change in approved_changes if change.get("deleteId")]
+
+    decided_items = [change for change in approved_changes if not change.get("deleteId")] + kept_items + chosen_items + agreements
+    comments_by_transaction_id_map = _join_comments(decided_items, answers.comments_by_merchant_key_map)
+    confirmations = [replace(confirmation, comment=comments_by_transaction_id_map.get(confirmation.transaction_id)) for confirmation in confirmations]
+    upserts = _add_comments(upserts, comments_by_transaction_id_map)
+
     decided_ids = {change["transaction"]["id"] for change in approved_changes} | {
         confirmation.transaction_id for confirmation in confirmations
     }
@@ -88,6 +99,43 @@ def _find_checked_until(raw_proposal: dict[str, Any], open_items: list[dict[str,
 
     left_open_days = [date.fromisoformat(item["transaction"]["date"]) for item in open_items if item["transaction"]["id"] not in decided_ids]
     return min(left_open_days, default=date.fromisoformat(raw_proposal["checkedUntil"]))
+
+
+def _join_comments(decided_items: list[dict[str, Any]], comments_by_merchant_key_map: dict[str, str]) -> dict[str, str]:
+    unknown_merchant_keys = set(comments_by_merchant_key_map) - {item["merchantKey"] for item in decided_items}
+    if unknown_merchant_keys:
+        raise ProposalFormatError(f"--comment names merchant keys that no approved, kept or set row holds: {sorted(unknown_merchant_keys)}")
+
+    return {
+        item["transaction"]["id"]: _join_comment(item["transaction"]["comment"], comments_by_merchant_key_map[item["merchantKey"]])
+        for item in decided_items
+        if item["merchantKey"] in comments_by_merchant_key_map
+    }
+
+
+def _join_comment(current_comment: str, added_text: str) -> str:
+    if not current_comment:
+        return added_text
+    if added_text in current_comment:
+        return current_comment
+
+    return f"{current_comment}{_COMMENT_SEPARATOR}{added_text}"
+
+
+def _add_comments(upserts: list[dict[str, Any]], comments_by_transaction_id_map: dict[str, str]) -> list[dict[str, Any]]:
+    commented_upserts: list[dict[str, Any]] = []
+    commented_ids: set[str] = set()
+    for upsert in upserts:
+        if upsert["id"] in comments_by_transaction_id_map and upsert["id"] not in commented_ids:
+            upsert = upsert | {"comment": comments_by_transaction_id_map[upsert["id"]]}
+            commented_ids.add(upsert["id"])
+        commented_upserts.append(upsert)
+
+    return commented_upserts + [
+        {"id": transaction_id, "comment": comment}
+        for transaction_id, comment in comments_by_transaction_id_map.items()
+        if transaction_id not in commented_ids
+    ]
 
 
 def _read_changes(raw_proposal: dict[str, Any]) -> list[dict[str, Any]]:

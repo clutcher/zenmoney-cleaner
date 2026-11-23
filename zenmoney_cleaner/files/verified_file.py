@@ -18,6 +18,7 @@ def read_verified_transactions(path: Path) -> VerifiedTransactions:
             payee=str(raw_entry.get("payee") or ""),
             reason=str(raw_entry.get("reason") or raw_entry.get("by") or ""),
             confirmed_on=str(raw_entry.get("confirmed", "")),
+            comment=raw_entry.get("comment"),
         )
         for transaction_id, raw_entry in raw_entries.items()
     })
@@ -36,6 +37,8 @@ def record_confirmations(path: Path, confirmations: tuple[Confirmation, ...], co
             "amount": confirmation.amount,
             "payee": confirmation.payee,
         }
+        if confirmation.comment:
+            raw_entries[confirmation.transaction_id]["comment"] = confirmation.comment
 
     path.write_text(yaml.safe_dump(raw_entries, allow_unicode=True, sort_keys=True), encoding="utf-8")
 

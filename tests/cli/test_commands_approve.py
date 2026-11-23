@@ -196,3 +196,42 @@ def test_should_keep_every_other_undecided_merchant_when_the_user_keeps_the_rest
     assert batches["upsertBatches"] == [[{"id": "t-4", "categoryId": CAFE_ID}, {"id": "t-2", "categoryId": CAFE_ID}]]
     assert sorted(verified_entries) == ["t-1", "t-2", "t-4"]
     assert verified_entries["t-1"]["category"] == "Groceries"
+
+
+def test_should_add_the_comment_to_the_update_and_the_verified_entry_when_the_user_sets_a_category_with_a_comment(tmp_path: Path) -> None:
+    # given
+    undecided = {"merchantKey": "OUTLET 6227", "transaction": _build_transaction_line("t-1", "Groceries", GROCERIES_ID)}
+    raw_proposal = {"changes": [], "undecided": [undecided], "categoriesByKey": {"cafe": {"id": CAFE_ID, "name": "Cafes & Restaurants", "parent_id": None}}}
+
+    # when
+    batches, verified_entries = _run_approve(tmp_path, raw_proposal, "--set", "OUTLET 6227=cafe", "--comment", "OUTLET 6227=Coffee for the team (Outlet)")
+
+    # then
+    assert batches["upsertBatches"] == [[{"id": "t-1", "categoryId": CAFE_ID, "comment": "Coffee for the team (Outlet)"}]]
+    assert verified_entries["t-1"]["comment"] == "Coffee for the team (Outlet)"
+
+
+def test_should_append_the_comment_after_the_one_the_transaction_holds_when_the_user_keeps_its_category(tmp_path: Path) -> None:
+    # given
+    transaction_line = _build_transaction_line("t-1", "Groceries", GROCERIES_ID) | {"comment": "Elm Street 4"}
+    undecided = {"merchantKey": "UTILITY CO", "transaction": transaction_line}
+
+    # when
+    batches, _ = _run_approve(tmp_path, {"changes": [], "undecided": [undecided]}, "--keep", "UTILITY CO", "--comment", "UTILITY CO=Electricity")
+
+    # then
+    assert batches["upsertBatches"] == [[{"id": "t-1", "comment": "Elm Street 4 · Electricity"}]]
+
+
+def test_should_refuse_the_approval_when_a_comment_names_a_merchant_that_no_decided_row_holds(tmp_path: Path) -> None:
+    # given
+    undecided = {"merchantKey": "UTILITY CO", "transaction": _build_transaction_line("t-1", "Groceries", GROCERIES_ID)}
+    proposal_path = tmp_path / "proposal.json"
+    proposal_path.write_text(json.dumps({"changes": [], "undecided": [undecided]}), encoding="utf-8")
+
+    # when
+    exit_code = main(["approve", "--proposal", str(proposal_path), "--comment", "UTILITY CO=Electricity", "--out", str(tmp_path / "b.json"), "--home", str(tmp_path)])
+
+    # then
+    assert exit_code == 1
+    assert not (tmp_path / "b.json").exists()

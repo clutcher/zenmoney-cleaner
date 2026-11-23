@@ -468,3 +468,18 @@ def test_should_show_2_reasons_and_count_the_rest_when_a_grouped_row_holds_more(
     # then
     proposal_text = (run.out / "proposal.md").read_text(encoding="utf-8")
     assert "| a person, 2 EUR; a person, 3 EUR (+2 similar) |" in proposal_text
+
+
+def test_should_show_the_comment_of_a_confirmed_example_when_the_user_gave_one(tmp_path: Path) -> None:
+    # given
+    verified_text = (
+        f"t-1: {{category: Clothing, category_id: {CLOTHING_ID}, by: user, payee: OUTLET 6227, "
+        "reason: user chose the category, comment: Work shoes (Outlet), confirmed: '2025-11-19'}\n"
+    )
+    run = start_run(tmp_path, [build_expense("t-2", "2025-11-20", 19.9, "OUTLET 6231")], "without-category", verified_text=verified_text)
+
+    # when
+    run.run("prepare")
+
+    # then
+    assert run.read_tasks("categorize")[0]["confirmedExamples"] == ["OUTLET 6227 → Clothing: user chose the category (Work shoes (Outlet))"]

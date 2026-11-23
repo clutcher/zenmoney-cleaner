@@ -47,7 +47,7 @@ Each merchant key the researcher looked up, with `place`, `source`, `trust` and 
 
 ## verified.yml
 
-1 entry per transaction id with the category, who confirmed it, the reason, the date, the amount and the bank text. A run skips a transaction whose category still equals the confirmed one, and the newest 300 distinct bank texts go into every categorize task as examples, so a new branch of a known chain is decided by analogy. Delete an entry to have that transaction judged again.
+1 entry per transaction id with the category, who confirmed it, the reason, the date, the amount, the bank text, and the comment the user added at the approval, if any. A run skips a transaction whose category still equals the confirmed one, and the newest 300 distinct bank texts go into every categorize task as examples, so a new branch of a known chain is decided by analogy. Delete an entry to have that transaction judged again.
 
 ## The balance-adjustment category
 
